@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>OpenBuilder Ultimate</title>
+    <title>OpenBuilder | Pro Commerce Suite</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -11,23 +11,30 @@
         body, html { height: 100%; margin: 0; font-family: -apple-system, sans-serif; background: #1e1e1e; color: white; overflow: hidden; }
         .panel__top { padding: 10px 20px; background: #1e1e1e; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; height: 60px; }
         .btns-right { display: flex; gap: 10px; align-items: center; }
-        input, select { background: #333; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; }
-        button { padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-weight: 600; background: #444; color: white; }
+        input, select { background: #333; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; font-size: 13px; }
+        button { padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-weight: 600; background: #444; color: white; transition: 0.3s; }
         .btn-github { background: #2ea44f; }
-        #status-display { font-size: 13px; color: #aaa; }
+        .btn-github:hover { background: #2c974b; transform: scale(1.05); }
+        #status-display { font-size: 12px; color: #888; max-width: 200px; overflow: hidden; }
         #gjs { height: calc(100vh - 60px) !important; }
-        .success-text { color: #2ea44f; font-weight: bold; }
+        
+        /* Sidebar block styling */
+        .gjs-block { width: 100% !important; min-height: 50px !important; padding: 10px !important; }
     </style>
 </head>
 <body>
 
     <div class="panel__top">
-        <div class="logo"><b>OpenBuilder Ultimate</b></div>
+        <div class="logo"><b>OpenBuilder</b> <small style="color:#888">v3.0</small></div>
         <div class="btns-right">
-            <div id="status-display">Ready.</div>
-            <select id="my-sites" onchange="loadExistingSite(this.value)"><option>My Sites (Load...)</option></select>
-            <input type="text" id="site-name" placeholder="Project Name">
-            <button class="btn-github" onclick="publishSite()">🚀 Publish & Go Live</button>
+            <div id="status-display">Ready</div>
+            <select id="theme-selector" onchange="applyTheme(this.value)">
+                <option value="modern">Modern Light</option>
+                <option value="dark">Sleek Dark</option>
+                <option value="retro">Retro Gold</option>
+            </select>
+            <input type="text" id="site-name" placeholder="Project Name...">
+            <button class="btn-github" onclick="publishSite()">🚀 Publish Live</button>
         </div>
     </div>
 
@@ -43,94 +50,86 @@
         };
         firebase.initializeApp(firebaseConfig);
 
-        // 1. INITIALIZE EDITOR WITH CUSTOM TRAITS
+        // 1. INITIALIZE EDITOR
         const editor = grapesjs.init({
             container: '#gjs',
             height: '100%',
             fromElement: true,
             storageManager: false,
-            assetManager: {
-                upload: 'https://api.cloudinary.com/v1_1/demo/image/upload', // Demo endpoint
-                params: { upload_preset: 'unsigned_preset' }
-            },
             blockManager: {
                 blocks: [
-                    { id: 'text', label: 'Text', content: '<p>Edit your content</p>' },
+                    { id: 'section', label: '<b>Section</b>', category: 'Layout', content: '<section style="padding:50px 20px; text-align:center;"><h2>New Section</h2></section>' },
+                    { id: 'title', label: 'Title Text', category: 'Basic', content: '<h1 style="font-size:3rem;">Headline Here</h1>' },
+                    { id: 'text', label: 'Paragraph', category: 'Basic', content: '<p>Edit this description for your product.</p>' },
+                    { id: 'image', label: 'Image', category: 'Basic', content: { type: 'image' } },
+                    { id: 'video', label: 'Video', category: 'Basic', content: { type: 'video', src: 'https://www.youtube.com/embed/dQw4w9WgXcQ' } },
+                    { id: 'navbar', label: 'Nav Bar', category: 'Layout', content: '<nav style="display:flex; justify-content:space-between; padding:20px; background:#eee;"><b>Logo</b><div>Home | Shop | Contact</div></nav>' },
                     { 
                         id: 'paypal', 
                         label: '<b>PayPal Button</b>', 
-                        attributes: { class: 'gjs-fonts gjs-f-b1' },
-                        content: {
-                            type: 'paypal-button',
-                            classes: ['paypal-container']
-                        }
+                        category: 'Commerce',
+                        content: { type: 'paypal-button' }
+                    },
+                    { 
+                        id: 'footer', 
+                        label: 'Footer', 
+                        category: 'Layout', 
+                        content: '<footer style="padding:40px; background:#222; color:white; text-align:center;">© 2026 My Shop</footer>' 
                     }
                 ]
             }
         });
 
-        // 2. DEFINE CUSTOM PAYPAL COMPONENT (Sidebar Editing)
+        // 2. PAYPAL COMPONENT DEFINITION (Trait/Sidebar Support)
         editor.DomComponents.addType('paypal-button', {
             model: {
                 defaults: {
                     tagName: 'div',
-                    attributes: { 'data-price': '10.00', 'data-item': 'My Product' },
-                    components: `
-                        <div style="padding:20px; border:2px solid #ffc439; border-radius:10px; text-align:center; color:black; background:white;">
-                            <h3>Buy <span class="item-name">My Product</span></h3>
-                            <p>$<span class="item-price">10.00</span></p>
-                            <div style="background:#ffc439; padding:10px; border-radius:5px; font-weight:bold;">PayPal Active on Live</div>
-                        </div>`,
+                    attributes: { 'data-price': '25.00', 'data-item': 'Premium Product', class: 'paypal-container' },
                     traits: [
                         { type: 'text', label: 'Product Name', name: 'data-item' },
-                        { type: 'text', label: 'Price', name: 'data-price' }
+                        { type: 'text', label: 'Price ($)', name: 'data-price' }
                     ],
+                    components: `
+                        <div style="padding:25px; border:3px solid #ffc439; border-radius:12px; text-align:center; color:#111; background:#fff; font-family:sans-serif;">
+                            <h3 class="item-name">Premium Product</h3>
+                            <p style="font-size:1.5rem; font-weight:bold;">$<span class="item-price">25.00</span></p>
+                            <div style="background:#ffc439; padding:12px; border-radius:6px; font-weight:bold; cursor:pointer;">PayPal Checkout (Active on Live)</div>
+                        </div>`
                 },
                 init() {
                     this.on('change:attributes:data-item', this.updateContent);
                     this.on('change:attributes:data-price', this.updateContent);
                 },
                 updateContent() {
-                    const name = this.getAttributes()['data-item'];
-                    const price = this.getAttributes()['data-price'];
-                    this.getEl().querySelector('.item-name').innerText = name;
-                    this.getEl().querySelector('.item-price').innerText = price;
+                    const attr = this.getAttributes();
+                    this.getEl().querySelector('.item-name').innerText = attr['data-item'];
+                    this.getEl().querySelector('.item-price').innerText = attr['data-price'];
                 }
             }
         });
 
-        // 3. LOAD EXISTING REPOS
-        window.loadExistingSite = async function(repoName) {
-            if (!repoName || repoName.includes("Load")) return;
-            const status = document.getElementById('status-display');
-            status.innerText = "Importing site...";
-
-            try {
-                const result = await firebase.auth().signInWithPopup(new firebase.auth.GithubAuthProvider());
-                const octokit = new Octokit({ auth: result.credential.accessToken });
-                
-                const res = await octokit.repos.getContent({
-                    owner: result.additionalUserInfo.username,
-                    repo: repoName,
-                    path: 'index.html'
-                });
-
-                const htmlContent = atob(res.data.content);
-                // Extract only the body content to put back into editor
-                const bodyMatch = htmlContent.match(/<body>([\s\S]*)<\/body>/);
-                if (bodyMatch) editor.setComponents(bodyMatch[1]);
-                
-                document.getElementById('site-name').value = repoName;
-                status.innerText = "Loaded " + repoName;
-            } catch (e) { status.innerText = "Load failed."; }
+        // 3. THEME SYSTEM
+        window.applyTheme = function(theme) {
+            const themes = {
+                modern: { color: '#333', bg: '#f4f4f4', font: 'Helvetica' },
+                dark: { color: '#eee', bg: '#121212', font: 'Arial' },
+                retro: { color: '#5d4037', bg: '#fff8e1', font: 'Georgia' }
+            };
+            const t = themes[theme];
+            editor.setComponents(`<section style="background-color:${t.bg}; color:${t.color}; font-family:${t.font}; padding:100px; min-height:100vh;">
+                <h1>${theme.toUpperCase()} THEME</h1>
+                <p>Edit this template as you wish.</p>
+            </section>`);
         };
 
-        // 4. PUBLISH LOGIC
+        // 4. PUBLISH & DEPLOY
         window.publishSite = async function() {
             const status = document.getElementById('status-display');
             const siteName = document.getElementById('site-name').value.trim().replace(/\s+/g, '-').toLowerCase();
             if (!siteName) return alert("Enter site name!");
 
+            status.innerText = "Authenticating...";
             const provider = new firebase.auth.GithubAuthProvider();
             provider.addScope('repo');
 
@@ -140,19 +139,19 @@
                 const user = result.additionalUserInfo.username;
                 const octokit = new Octokit({ auth: token });
 
-                status.innerText = "🚀 Deploying...";
-
-                // Create or check Repo
+                status.innerText = "🚀 Creating Repository...";
                 try { await octokit.request('POST /user/repos', { name: siteName, auto_init: true }); } catch (e) {}
 
-                // Build Final Code with PayPal Script
                 const html = editor.getHtml();
                 const css = editor.getCss();
+                
+                // The Master Template (Injecting PayPal SDK)
                 const finalCode = `
                 <!DOCTYPE html>
                 <html>
                 <head>
                     <meta charset="UTF-8">
+                    <title>${siteName} | Shop</title>
                     <style>${css}</style>
                     <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD"><\/script>
                 </head>
@@ -162,18 +161,19 @@
                         document.querySelectorAll('.paypal-container').forEach(el => {
                             const price = el.getAttribute('data-price');
                             const name = el.getAttribute('data-item');
-                            el.innerHTML = '<div id="btn-' + Math.random().toString(36).substr(2,9) + '"></div>';
+                            const btnId = 'btn-' + Math.random().toString(36).substr(2,7);
+                            el.innerHTML = '<div id="' + btnId + '"></div>';
                             paypal.Buttons({
                                 createOrder: (data, actions) => actions.order.create({
                                     purchase_units: [{ description: name, amount: { value: price } }]
                                 })
-                            }).render(el.firstChild);
+                            }).render('#' + btnId);
                         });
                     <\/script>
                 </body>
                 </html>`;
 
-                // Get SHA if exists
+                status.innerText = "Uploading Files...";
                 let sha = null;
                 try {
                     const existing = await octokit.repos.getContent({ owner: user, repo: siteName, path: 'index.html' });
@@ -185,33 +185,17 @@
                     message: 'Update', content: btoa(unescape(encodeURIComponent(finalCode))), sha
                 });
 
-                // Enable Pages
+                status.innerText = "Activating Pages...";
                 try { await octokit.request('POST /repos/{owner}/{repo}/pages', { owner: user, repo: siteName, source: { branch: 'main', path: '/' } }); } catch (e) {}
 
-                status.innerHTML = `<span class="success-text">Published!</span> <a href="https://${user}.github.io/${siteName}/" target="_blank" style="color:#58a6ff">View</a>`;
+                const liveUrl = `https://${user}.github.io/${siteName}/`;
+                status.innerHTML = `<a href="${liveUrl}" target="_blank" style="color:#2ea44f; font-weight:bold;">GO TO SITE ➔</a>`;
                 
-                // Refresh site list
-                fetchRepos(octokit, user);
             } catch (error) {
-                status.innerText = "Error: " + error.message;
+                status.innerText = "Error!";
+                alert(error.message);
             }
         };
-
-        // Fetch user's repos to populate the dropdown
-        async function fetchRepos(octokit, user) {
-            const repos = await octokit.repos.listForAuthenticatedUser({ sort: 'updated', per_page: 50 });
-            const sel = document.getElementById('my-sites');
-            sel.innerHTML = '<option>Load Existing Site...</option>' + 
-                repos.data.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
-        }
-
-        // Auto-fetch on login
-        firebase.auth().onAuthStateChanged(async (user) => {
-            if (user) {
-                // To fetch repos we need the token from the login result, 
-                // for now, we'll fetch when they click the dropdown or publish.
-            }
-        });
     </script>
 </body>
 </html>
