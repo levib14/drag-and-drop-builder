@@ -1,98 +1,49 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>OpenBuilder | Sign In & Publish</title>
+    <title>OpenBuilder Pro | Multi-Page & Payments</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
     <style>
-        body, html { height: 100%; margin: 0; font-family: -apple-system, sans-serif; overflow: hidden; background: #1e1e1e; }
-        .panel__top { 
-            padding: 10px 20px; 
-            background: #1e1e1e; 
-            color: white; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            border-bottom: 1px solid #333;
-        }
+        body, html { height: 100%; margin: 0; font-family: -apple-system, sans-serif; overflow: hidden; background: #1e1e1e; color: white; }
+        .panel__top { padding: 10px 20px; background: #1e1e1e; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; }
         .btns-right { display: flex; gap: 10px; align-items: center; }
-        #site-name {
-            background: #333;
-            border: 1px solid #444;
-            color: white;
-            padding: 8px;
-            border-radius: 4px;
-            outline: none;
-            width: 180px;
-        }
-        button {
-            padding: 8px 16px;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            transition: 0.2s;
-        }
+        #site-name { background: #333; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; width: 150px; }
+        button { padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-weight: 600; }
         .btn-github { background: #2ea44f; color: white; }
-        .btn-github:hover { background: #2c974b; }
-        
-        /* Success Message Styling */
-        #status-display {
-            font-size: 13px;
-            margin-right: 15px;
-            max-width: 300px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .success-text { color: #2ea44f; font-weight: bold; }
-        .error-text { color: #ff4d4d; }
-        .success-link { color: #58a6ff; text-decoration: none; margin-left: 5px; border-bottom: 1px solid transparent; }
-        .success-link:hover { border-bottom: 1px solid #58a6ff; }
-
+        .btn-page { background: #444; color: white; font-size: 12px; }
+        #status-display { font-size: 13px; margin-right: 15px; }
+        .success-text { color: #2ea44f; }
         #gjs { height: calc(100vh - 56px) !important; }
+        #loader { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; flex-direction: column; justify-content: center; align-items: center; }
         
-        #loader {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            color: white;
-            z-index: 1000;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
+        /* Pulse animation for the "Waiting for Live" stage */
+        .pulse { animation: pulse-animation 2s infinite; }
+        @keyframes pulse-animation { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
 
     <div id="loader">
-        <h1 id="loader-title">Pushing to GitHub...</h1>
-        <p id="loader-status">Preparing...</p>
+        <h1 id="loader-title">Publishing...</h1>
+        <p id="loader-status" class="pulse">Initializing...</p>
     </div>
 
     <div class="panel__top">
-        <div class="logo"><b>OpenBuilder</b></div>
-        
+        <div class="logo"><b>OpenBuilder Pro</b></div>
         <div class="btns-right">
             <div id="status-display"></div>
-            
-            <input type="text" id="site-name" placeholder="Site Name">
-            <button class="btn-github" onclick="loginAndPublish()">🚀 Publish Site</button>
-            <button style="background:transparent; color:#888; font-size:11px;" onclick="firebase.auth().signOut()">Sign Out</button>
+            <button class="btn-page" onclick="addNewPage()">+ Add Page</button>
+            <select id="page-selector" onchange="switchPage(this.value)" style="background:#333; color:white; border:1px solid #444; padding:5px; border-radius:4px;"></select>
+            <input type="text" id="site-name" placeholder="Project Name">
+            <button class="btn-github" onclick="publishSite()">🚀 Go Live</button>
         </div>
     </div>
 
-    <div id="gjs">
-        <section style="padding: 100px 50px; text-align: center; background-color: #f9f9f9;">
-            <h1>OpenBuilder E-Commerce</h1>
-            <p>Edit this site and hit Publish. Your link will appear at the top.</p>
-        </section>
-    </div>
+    <div id="gjs"></div>
 
     <script type="module">
         import { Octokit } from "https://cdn.skypack.dev/@octokit/rest";
@@ -102,97 +53,178 @@
             authDomain: "web-maker-c6261.firebaseapp.com",
             projectId: "web-maker-c6261"
         };
-        
         firebase.initializeApp(firebaseConfig);
+
+        // --- PAGE MANAGEMENT ---
+        let pages = { 'index.html': { html: '', css: '' } };
+        let currentPage = 'index.html';
 
         const editor = grapesjs.init({
             container: '#gjs',
-            fromElement: true,
             height: '100%',
             storageManager: false,
             blockManager: {
                 blocks: [
-                    { id: 'text', label: 'Text', content: '<p>Edit me!</p>' },
-                    { id: 'image', label: 'Image', content: { type: 'image' } }
+                    { id: 'text', label: 'Text', content: '<p>New Text</p>' },
+                    { 
+                        id: 'paypal', 
+                        label: '<b>PayPal Button</b>', 
+                        content: `<div class="paypal-block" data-price="10.00" data-item="Product Name" style="padding:20px; border:2px solid #ffc439; border-radius:10px; text-align:center;">
+                                    <h3>Buy <span class="item-name">Product Name</span></h3>
+                                    <p>$<span class="item-price">10.00</span></p>
+                                    <div class="paypal-placeholder" style="background:#ffc439; padding:10px; border-radius:5px; color:black; font-weight:bold;">PayPal Button (Active on Live)</div>
+                                  </div>`
+                    }
                 ]
             }
         });
 
-        window.loginAndPublish = async function() {
-            const statusBox = document.getElementById('status-display');
-            const siteInput = document.getElementById('site-name');
-            const siteName = siteInput.value.trim().replace(/\s+/g, '-').toLowerCase();
-            
-            if (!siteName) {
-                statusBox.innerHTML = '<span class="error-text">⚠️ Enter a site name</span>';
-                return;
+        // PayPal Editing Logic
+        editor.on('component:selected', (component) => {
+            if (component.getAttributes().class?.includes('paypal-block')) {
+                const newName = prompt("Enter Product Name:", component.getAttributes()['data-item']);
+                const newPrice = prompt("Enter Price (e.g. 19.99):", component.getAttributes()['data-price']);
+                
+                if (newName && newPrice) {
+                    component.addAttributes({ 'data-item': newName, 'data-price': newPrice });
+                    const html = component.getEl();
+                    html.querySelector('.item-name').innerText = newName;
+                    html.querySelector('.item-price').innerText = newPrice;
+                }
             }
+        });
 
-            statusBox.innerHTML = '<span>Logging in...</span>';
+        window.addNewPage = function() {
+            const name = prompt("Enter page name (e.g., about, contact):");
+            if (!name) return;
+            const fileName = name.toLowerCase().replace(/\s+/g, '-') + '.html';
+            if (pages[fileName]) return alert("Page exists!");
+            
+            // Save current
+            pages[currentPage] = { html: editor.getHtml(), css: editor.getCss() };
+            
+            // Create new
+            pages[fileName] = { html: '<h1>New Page</h1>', css: '' };
+            updatePageSelector();
+            switchPage(fileName);
+        };
+
+        window.switchPage = function(fileName) {
+            pages[currentPage] = { html: editor.getHtml(), css: editor.getCss() };
+            currentPage = fileName;
+            editor.setComponents(pages[fileName].html);
+            editor.setStyle(pages[fileName].css);
+            document.getElementById('page-selector').value = fileName;
+        };
+
+        function updatePageSelector() {
+            const sel = document.getElementById('page-selector');
+            sel.innerHTML = Object.keys(pages).map(p => `<option value="${p}">${p}</option>`).join('');
+        }
+        updatePageSelector();
+
+        // --- PUBLISHING LOGIC ---
+        window.publishSite = async function() {
+            const siteName = document.getElementById('site-name').value.trim().replace(/\s+/g, '-').toLowerCase();
+            if (!siteName) return alert("Enter site name!");
 
             const provider = new firebase.auth.GithubAuthProvider();
-            provider.addScope('repo'); 
-            // provider.setCustomParameters({ 'prompt': 'consent' }); // Optional: remove if you want it to remember you
+            provider.addScope('repo');
 
             try {
                 const result = await firebase.auth().signInWithPopup(provider);
                 const token = result.credential.accessToken;
                 const githubUser = result.additionalUserInfo.username;
-
-                document.getElementById('loader').style.display = 'flex';
                 const octokit = new Octokit({ auth: token });
 
-                // 1. SILENT NAME CHECK
-                document.getElementById('loader-status').innerText = "Checking if name is taken...";
+                document.getElementById('loader').style.display = 'flex';
+                const status = document.getElementById('loader-status');
+
+                // 1. Create Repo
+                status.innerText = "Creating GitHub repository...";
                 try {
-                    await octokit.repos.get({ owner: githubUser, repo: siteName });
-                    // If we get here, it means the repo EXISTS
-                    document.getElementById('loader').style.display = 'none';
-                    statusBox.innerHTML = `<span class="error-text">❌ "${siteName}" already exists!</span>`;
-                    return;
-                } catch (e) {
-                    if (e.status !== 404) throw e; // Only 404 is good (means name is free)
+                    await octokit.request('POST /user/repos', { name: siteName, auto_init: true });
+                } catch (e) { if(e.status !== 422) throw e; } // Ignore if already exists
+
+                // 2. Upload All Pages
+                status.innerText = "Uploading all pages...";
+                pages[currentPage] = { html: editor.getHtml(), css: editor.getCss() };
+                
+                for (const [filename, content] of Object.entries(pages)) {
+                    const finalHTML = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="UTF-8">
+                            <style>${content.css}</style>
+                            <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD"><\/script>
+                        </head>
+                        <body>
+                            ${content.html}
+                            <script>
+                                document.querySelectorAll('.paypal-block').forEach(el => {
+                                    const price = el.getAttribute('data-price');
+                                    const name = el.getAttribute('data-item');
+                                    el.querySelector('.paypal-placeholder').innerHTML = ''; // Clear placeholder
+                                    paypal.Buttons({
+                                        createOrder: (data, actions) => {
+                                            return actions.order.create({
+                                                purchase_units: [{ description: name, amount: { value: price } }]
+                                            });
+                                        }
+                                    }).render(el.querySelector('.paypal-placeholder'));
+                                });
+                            <\/script>
+                        </body>
+                        </html>`;
+
+                    await octokit.repos.createOrUpdateFileContents({
+                        owner: githubUser,
+                        repo: siteName,
+                        path: filename,
+                        message: `Updating ${filename}`,
+                        content: btoa(unescape(encodeURIComponent(finalHTML))),
+                        sha: await getSha(octokit, githubUser, siteName, filename)
+                    });
                 }
 
-                // 2. CREATE REPO
-                document.getElementById('loader-status').innerText = "Creating repository...";
-                await octokit.request('POST /user/repos', { name: siteName, auto_init: true });
+                // 3. Enable Pages
+                status.innerText = "Starting GitHub Pages...";
+                try {
+                    await octokit.request('POST /repos/{owner}/{repo}/pages', {
+                        owner: githubUser, repo: siteName, source: { branch: 'main', path: '/' }
+                    });
+                } catch (e) {}
 
-                // 3. UPLOAD CONTENT
-                await new Promise(r => setTimeout(r, 2000));
-                document.getElementById('loader-status').innerText = "Uploading files...";
-                const finalCode = `<!DOCTYPE html><html><style>${editor.getCss()}</style><body>${editor.getHtml()}</body></html>`;
-
-                await octokit.repos.createOrUpdateFileContents({
-                    owner: githubUser,
-                    repo: siteName,
-                    path: 'index.html',
-                    message: 'Deploy',
-                    content: btoa(unescape(encodeURIComponent(finalCode)))
-                });
-
-                // 4. ACTIVATE PAGES
-                document.getElementById('loader-status').innerText = "Going live...";
-                await octokit.request('POST /repos/{owner}/{repo}/pages', {
-                    owner: githubUser,
-                    repo: siteName,
-                    source: { branch: 'main', path: '/' }
-                });
-
-                // 5. SUCCESS UI
-                document.getElementById('loader').style.display = 'none';
+                // 4. WAIT FOR LIVE (The "Smart" Checker)
                 const liveUrl = `https://${githubUser}.github.io/${siteName}/`;
-                statusBox.innerHTML = `
-                    <span class="success-text">🚀 Published!</span>
-                    <a href="${liveUrl}" target="_blank" class="success-link">View Site</a>
-                `;
+                status.innerText = "Waiting for GitHub to go live (usually 30-60s)...";
+                
+                let isLive = false;
+                while (!isLive) {
+                    try {
+                        const check = await fetch(liveUrl, { mode: 'no-cors' });
+                        isLive = true; 
+                    } catch (e) {
+                        await new Promise(r => setTimeout(r, 5000)); // Check every 5 seconds
+                    }
+                }
+
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('status-display').innerHTML = `<span class="success-text">✅ Live: <a href="${liveUrl}" target="_blank" style="color:#58a6ff">${liveUrl}</a></span>`;
 
             } catch (error) {
                 document.getElementById('loader').style.display = 'none';
-                console.error(error);
-                statusBox.innerHTML = `<span class="error-text">❌ Error: ${error.status || 'Failed'}</span>`;
+                alert("Publish Error: " + error.message);
             }
         };
+
+        async function getSha(octokit, owner, repo, path) {
+            try {
+                const res = await octokit.repos.getContent({ owner, repo, path });
+                return res.data.sha;
+            } catch (e) { return null; }
+        }
     </script>
 </body>
 </html>
