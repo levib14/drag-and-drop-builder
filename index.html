@@ -10,8 +10,6 @@
 
     <style>
         body, html { height: 100%; margin: 0; font-family: -apple-system, sans-serif; overflow: hidden; }
-        
-        /* Top Bar Navigation */
         .panel__top { 
             padding: 10px 20px; 
             background: #1e1e1e; 
@@ -21,9 +19,7 @@
             align-items: center;
             border-bottom: 1px solid #333;
         }
-
         .btns-right { display: flex; gap: 10px; align-items: center; }
-
         #site-name {
             background: #333;
             border: 1px solid #444;
@@ -33,7 +29,6 @@
             outline: none;
             width: 200px;
         }
-
         button {
             padding: 8px 16px;
             border-radius: 4px;
@@ -42,15 +37,10 @@
             font-weight: 600;
             transition: 0.2s;
         }
-
         .btn-download { background: #444; color: white; }
         .btn-github { background: #2ea44f; color: white; }
         .btn-github:hover { background: #2c974b; transform: translateY(-1px); }
-
-        /* Editor height adjustment */
         #gjs { height: calc(100vh - 56px) !important; }
-        
-        /* Loading Overlay */
         #loader {
             display: none;
             position: fixed;
@@ -74,6 +64,7 @@
             <input type="text" id="site-name" placeholder="Website Name (No spaces)">
             <button class="btn-download" onclick="downloadSite()">Download HTML</button>
             <button class="btn-github" onclick="loginAndPublish()">🚀 Sign in & Push</button>
+            <button style="background:transparent; color:#888; font-size:12px;" onclick="firebase.auth().signOut().then(() => alert('Signed out!'))">Sign Out</button>
         </div>
     </div>
 
@@ -87,17 +78,18 @@
     <script type="module">
         import { Octokit } from "https://cdn.skypack.dev/@octokit/rest";
 
-      const firebaseConfig = {
-    apiKey: "AIzaSyBtcrbgIblZlg5mqGJPaGTFctCoTPrY-WQ",
-    authDomain: "web-maker-c6261.firebaseapp.com",
-    projectId: "web-maker-c6261"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyBtcrbgIblZlg5mqGJPaGTFctCoTPrY-WQ",
+            authDomain: "web-maker-c6261.firebaseapp.com",
+            projectId: "web-maker-c6261"
+        };
         
         firebase.initializeApp(firebaseConfig);
         const provider = new firebase.auth.GithubAuthProvider();
-        provider.addScope('repo'); // Crucial: This allows the app to create repos for the user
+        
+        // This requests permission to create repositories
+        provider.addScope('repo'); 
 
-        // --- GRAPESJS INITIALIZATION ---
         const editor = grapesjs.init({
             container: '#gjs',
             fromElement: true,
@@ -118,29 +110,30 @@
             }
         });
 
-        // --- PUBLISH LOGIC ---
         window.loginAndPublish = async function() {
             const siteName = document.getElementById('site-name').value.trim().replace(/\s+/g, '-').toLowerCase();
             if (!siteName) return alert("Please enter a name for your website.");
 
             try {
-                // 1. VS-Code Style Login Popup
+                // 1. Authenticate with GitHub
                 const result = await firebase.auth().signInWithPopup(provider);
                 const token = result.credential.accessToken;
                 const githubUser = result.additionalUserInfo.username;
+
+                if (!token) throw new Error("No access token found. Try signing out and back in.");
 
                 document.getElementById('loader').style.display = 'flex';
 
                 const octokit = new Octokit({ auth: token });
 
-                // 2. Create the GitHub Repository
+                // 2. Create the Repo
                 await octokit.repos.createForAuthenticatedUser({
                     name: siteName,
                     auto_init: true,
                     description: "Site built with OpenBuilder"
                 });
 
-                // 3. Prepare the Final HTML
+                // 3. Prep HTML
                 const html = editor.getHtml();
                 const css = editor.getCss();
                 const finalCode = `
@@ -162,7 +155,7 @@
                 </body>
                 </html>`;
 
-                // 4. Upload index.html to the new repo
+                // 4. Upload File
                 await octokit.repos.createOrUpdateFileContents({
                     owner: githubUser,
                     repo: siteName,
@@ -171,7 +164,7 @@
                     content: btoa(unescape(encodeURIComponent(finalCode)))
                 });
 
-                // 5. Enable GitHub Pages
+                // 5. Enable Pages
                 await octokit.request('POST /repos/{owner}/{repo}/pages', {
                     owner: githubUser,
                     repo: siteName,
@@ -184,11 +177,15 @@
             } catch (error) {
                 document.getElementById('loader').style.display = 'none';
                 console.error(error);
-                alert("Something went wrong: " + error.message);
+                
+                if (error.status === 403 || error.message.includes('Resource not accessible')) {
+                    alert("Permission Error: Please click 'Sign Out' at the top right, then try again. When the GitHub popup appears, make sure you authorize repository access.");
+                } else {
+                    alert("Error: " + error.message);
+                }
             }
         };
 
-        // --- DOWNLOAD LOGIC ---
         window.downloadSite = function() {
             const html = editor.getHtml();
             const css = editor.getCss();
