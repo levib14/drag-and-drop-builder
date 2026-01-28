@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>OpenBuilder | Secure Sync & Store</title>
+    <title>OpenBuilder | Secure Sync</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -18,27 +18,37 @@
         .sidebar h3 { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; }
         
         input, select { background: #2a2a2a; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 13px; margin-bottom: 12px; }
-        label { font-size: 11px; color: #888; display: block; margin-bottom: 5px; }
-
+        
         .btn { width: 100%; padding: 12px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; }
         .btn-save { background: #22c55e; color: white; }
-        .btn-save:hover { background: #16a34a; }
         .btn-blue { background: #3b82f6; color: white; }
-        .btn-outline { background: transparent; border: 1px solid #444; color: #ccc; margin-top: 5px; }
+        .btn-outline { background: transparent; border: 1px solid #444; color: #ccc; }
         .btn-delete { background: #ef444422; color: #ef4444; border: 1px solid #ef444444; font-size: 11px; margin-top: 30px; }
-        .btn-delete:hover { background: #ef4444; color: white; }
+
+        /* Popup Warning Toast */
+        #popup-toast { 
+            display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
+            background: #f59e0b; color: #000; padding: 15px 25px; border-radius: 8px; 
+            z-index: 3000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-weight: bold;
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp { from { bottom: -50px; } to { bottom: 20px; } }
 
         #gjs { flex-grow: 1; }
         #loader-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; flex-direction: column; justify-content: center; align-items: center; }
-        .status-pill { background: #3b82f622; color: #3b82f6; padding: 4px 12px; border-radius: 20px; font-size: 12px; border: 1px solid #3b82f644; }
     </style>
 </head>
 <body>
 
     <div id="loader-overlay"><h2 id="loader-msg">Syncing Project...</h2></div>
+    
+    <div id="popup-toast">
+        ⚠️ <b>Pop-up Blocked?</b> Please allow pop-ups for this site to sign in with GitHub.
+        <button onclick="this.parentElement.style.display='none'" style="margin-left:15px; border:none; background:none; cursor:pointer; font-weight:bold;">✕</button>
+    </div>
 
     <header class="app-header">
-        <div class="logo"><b>OpenBuilder</b> <span class="status-pill">Enterprise</span></div>
+        <div class="logo"><b>OpenBuilder</b></div>
         <div style="display:flex; gap:10px; align-items: center;">
             <input type="text" id="site-name" placeholder="Project Name" style="width:180px; margin:0;">
             <button class="btn btn-save" onclick="publishSite()" style="width:auto; margin:0;">🚀 Save & Publish</button>
@@ -47,33 +57,29 @@
 
     <div class="main-container">
         <div class="sidebar">
-            
             <div class="sidebar-section">
                 <h3>Cloud Projects</h3>
-                <select id="repo-list"><option value="">Connect GitHub to load...</option></select>
-                <button class="btn btn-outline" onclick="importProject()">📂 Open Selected</button>
+                <select id="repo-list"><option value="">Waiting for login...</option></select>
+                <button class="btn btn-outline" id="auth-btn" onclick="connectGitHub()">🔑 Connect GitHub</button>
+                <button class="btn btn-outline" id="load-btn" onclick="importProject()" style="display:none; margin-top:10px;">📂 Open Project</button>
             </div>
 
             <div class="sidebar-section">
-                <h3>Settings & Security</h3>
-                <label>PayPal Client ID (Obfuscated on Save)</label>
-                <input type="password" id="paypal-id" placeholder="Paste Client ID">
-                
-                <label>Theme Brand Color</label>
+                <h3>Store Settings</h3>
+                <input type="password" id="paypal-id" placeholder="PayPal Client ID">
                 <input type="color" id="global-color" value="#3b82f6" onchange="updateBrandColor(this.value)">
             </div>
 
             <div class="sidebar-section">
-                <h3>Quick Product Creator</h3>
+                <h3>Add Product</h3>
                 <input type="text" id="p-name" placeholder="Item Name">
                 <input type="number" id="p-price" placeholder="Price">
                 <input type="text" id="p-img" placeholder="Image URL">
-                <button class="btn btn-blue" onclick="addNewProduct()">Add Product to Canvas</button>
+                <button class="btn btn-blue" onclick="addNewProduct()">Add to Canvas</button>
             </div>
 
-            <button class="btn btn-delete" onclick="deleteCurrentProject()">Delete Repository Forever</button>
+            <button class="btn btn-delete" onclick="deleteCurrentProject()">Delete Repository</button>
         </div>
-
         <div id="gjs"></div>
     </div>
 
@@ -87,183 +93,115 @@
         };
         firebase.initializeApp(firebaseConfig);
 
-        const editor = grapesjs.init({
-            container: '#gjs',
-            height: '100%',
-            fromElement: true,
-            storageManager: false,
-        });
-
-        // Add default sample text
-        editor.setComponents('<section style="padding:100px 50px; text-align:center;"><h1>My New Store</h1><p>Start adding products from the sidebar!</p></section>');
+        const editor = grapesjs.init({ container: '#gjs', height: '100%', storageManager: false });
+        editor.setComponents('<section style="padding:100px; text-align:center;"><h1>Ready to Build</h1><p>Connect GitHub to save your work.</p></section>');
 
         let githubToken = "";
         let githubUser = "";
 
-        const connectGitHub = async () => {
-            if (githubToken) return new Octokit({ auth: githubToken });
-            const result = await firebase.auth().signInWithPopup(new firebase.auth.GithubAuthProvider().addScope('repo').addScope('delete_repo'));
-            githubToken = result.credential.accessToken;
-            githubUser = result.additionalUserInfo.username;
-            fetchRepos();
-            return new Octokit({ auth: githubToken });
+        // --- AUTH LOGIC WITH POPUP REMINDER ---
+        window.connectGitHub = async () => {
+            const toast = document.getElementById('popup-toast');
+            // Show reminder after 1.5 seconds if login hasn't finished
+            const timer = setTimeout(() => { toast.style.display = 'block'; }, 1500);
+
+            try {
+                const provider = new firebase.auth.GithubAuthProvider();
+                provider.addScope('repo').addScope('delete_repo');
+                
+                const result = await firebase.auth().signInWithPopup(provider);
+                
+                clearTimeout(timer);
+                toast.style.display = 'none';
+                
+                githubToken = result.credential.accessToken;
+                githubUser = result.additionalUserInfo.username;
+                
+                document.getElementById('auth-btn').style.display = 'none';
+                document.getElementById('load-btn').style.display = 'block';
+                fetchRepos();
+            } catch (e) {
+                clearTimeout(timer);
+                if (e.code === 'auth/popup-blocked') {
+                    toast.style.display = 'block';
+                } else {
+                    alert("Auth error: " + e.message);
+                }
+            }
         };
 
         async function fetchRepos() {
-            const octo = await connectGitHub();
+            const octo = new Octokit({ auth: githubToken });
             const repos = await octo.repos.listForAuthenticatedUser({ sort: 'updated', per_page: 50 });
             document.getElementById('repo-list').innerHTML = repos.data.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
         }
 
-        // --- THE RELOAD ENGINE (Loads JSON first, then falls back to HTML) ---
+        // --- PRESERVED SYNC & SECURITY LOGIC ---
         window.importProject = async () => {
             const repo = document.getElementById('repo-list').value;
-            const overlay = document.getElementById('loader-overlay');
-            overlay.style.display = 'flex';
-            
+            if(!repo) return;
+            document.getElementById('loader-overlay').style.display = 'flex';
             try {
-                const octo = await connectGitHub();
+                const octo = new Octokit({ auth: githubToken });
                 try {
-                    // 1. Try Loading Project JSON
                     const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: 'project-data.json' });
-                    const projectData = JSON.parse(atob(res.data.content));
-                    editor.loadProjectData(projectData);
+                    editor.loadProjectData(JSON.parse(atob(res.data.content)));
                 } catch (e) {
-                    // 2. Fallback to HTML if JSON is missing
                     const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: 'index.html' });
                     editor.setComponents(atob(res.data.content));
                 }
                 document.getElementById('site-name').value = repo;
-                overlay.style.display = 'none';
-            } catch (e) {
-                overlay.style.display = 'none';
-                alert("Error importing project.");
-            }
+            } catch (e) { alert("Load error."); }
+            document.getElementById('loader-overlay').style.display = 'none';
         };
 
-        // --- THE PUBLISH ENGINE (With Ghost Script Security) ---
         window.publishSite = async () => {
             const name = document.getElementById('site-name').value.trim();
             const ppId = document.getElementById('paypal-id').value.trim() || 'sb';
-            if(!name) return alert("Please name your project.");
+            if(!name || !githubToken) return alert("Connect GitHub and name project first!");
 
-            const overlay = document.getElementById('loader-overlay');
-            overlay.style.display = 'flex';
-            document.getElementById('loader-msg').innerText = "Securing & Syncing...";
-
+            document.getElementById('loader-overlay').style.display = 'flex';
             try {
-                const octo = await connectGitHub();
-                
-                // 1. OBFUSCATE PAYPAL ID
+                const octo = new Octokit({ auth: githubToken });
                 const secretKey = btoa(ppId); 
-
-                // 2. CREATE THE GHOST INJECTION SCRIPT
-                const ghostScript = `
-                    (function() {
-                        const _k = atob("${secretKey}");
-                        const s = document.createElement('script');
-                        s.src = "https://www.paypal.com/sdk/js?client-id=" + _k + "&currency=USD";
-                        s.onload = () => {
-                            document.querySelectorAll('.paypal-container').forEach(el => {
-                                const p = el.getAttribute('data-price');
-                                const i = el.getAttribute('data-item');
-                                const slot = el.querySelector('.paypal-slot');
-                                if(!slot) return;
-                                slot.innerHTML = '';
-                                paypal.Buttons({
-                                    createOrder: (data, actions) => actions.order.create({
-                                        purchase_units: [{ description: i, amount: { value: p } }]
-                                    })
-                                }).render(slot);
-                            });
-                        };
-                        document.head.appendChild(s);
-                    })();
-                `;
-
-                // 3. GENERATE LIVE HTML
-                const finalHTML = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>${name}</title>
-                    <style>${editor.getCss()} body{margin:0; font-family:sans-serif;}</style>
-                </head>
-                <body>
-                    ${editor.getHtml()}
-                    <script type="text/javascript">${ghostScript}<\/script>
-                </body>
-                </html>`;
-
-                // 4. PREPARE JSON FOR FUTURE EDITING
-                const projectJSON = JSON.stringify(editor.getProjectData());
-
-                // 5. UPLOAD TO GITHUB
+                const ghostScript = `(function(){const _k=atob("${secretKey}");const s=document.createElement('script');s.src="https://www.paypal.com/sdk/js?client-id="+_k+"&currency=USD";s.onload=()=>{document.querySelectorAll('.paypal-container').forEach(el=>{const p=el.getAttribute('data-price'),i=el.getAttribute('data-item'),slot=el.querySelector('.paypal-slot');if(!slot)return;slot.innerHTML='';paypal.Buttons({createOrder:(data,actions)=>actions.order.create({purchase_units:[{description:i,amount:{value:p}}]})}).render(slot);});};document.head.appendChild(s);})();`;
+                
+                const finalHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${editor.getCss()}body{margin:0;font-family:sans-serif;}</style></head><body>${editor.getHtml()}<script>${ghostScript}<\/script></body></html>`;
+                
                 try { await octo.request('POST /user/repos', { name: name, auto_init: true }); } catch (e) {}
-                await uploadFile(octo, name, 'project-data.json', projectJSON);
+                await uploadFile(octo, name, 'project-data.json', JSON.stringify(editor.getProjectData()));
                 await uploadFile(octo, name, 'index.html', finalHTML);
                 await octo.request('POST /repos/{owner}/{repo}/pages', { owner: githubUser, repo: name, source: { branch: 'main', path: '/' } }).catch(e=>{});
 
-                overlay.style.display = 'none';
-                alert("Site Published! Check your GitHub Pages link in a few moments.");
+                alert("Published! Your site will be live at: https://" + githubUser + ".github.io/" + name + "/");
                 fetchRepos();
-            } catch (e) {
-                overlay.style.display = 'none';
-                alert("Publish Failed: " + e.message);
-            }
+            } catch (e) { alert(e.message); }
+            document.getElementById('loader-overlay').style.display = 'none';
         };
 
         async function uploadFile(octo, repo, path, content) {
             let sha = null;
-            try {
-                const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: path });
-                sha = res.data.sha;
-            } catch (e) {}
-            return octo.repos.createOrUpdateFileContents({
-                owner: githubUser, repo: repo, path: path,
-                message: 'OpenBuilder Sync', content: btoa(unescape(encodeURIComponent(content))), sha
-            });
+            try { const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: path }); sha = res.data.sha; } catch (e) {}
+            return octo.repos.createOrUpdateFileContents({ owner: githubUser, repo: repo, path: path, message: 'Sync', content: btoa(unescape(encodeURIComponent(content))), sha });
         }
-
-        window.deleteCurrentProject = async () => {
-            const repo = document.getElementById('site-name').value;
-            if(!repo || !confirm(`Delete "${repo}" forever?`)) return;
-            try {
-                const octo = await connectGitHub();
-                await octo.repos.delete({ owner: githubUser, repo: repo });
-                alert("Deleted.");
-                location.reload();
-            } catch (e) { alert("Error deleting repo. Check your permissions."); }
-        };
 
         window.addNewProduct = () => {
             const name = document.getElementById('p-name').value;
             const price = document.getElementById('p-price').value;
-            const img = document.getElementById('p-img').value || 'https://via.placeholder.com/300';
             const color = document.getElementById('global-color').value;
-
-            if(!name || !price) return alert("Missing details!");
-
-            editor.addComponents(`
-                <div class="product-card paypal-container" data-item="${name}" data-price="${price}" style="max-width:320px; margin:20px auto; background:white; color:#111; border-radius:12px; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.1); font-family:sans-serif;">
-                    <img src="${img}" style="width:100%; height:220px; object-fit:cover;"/>
-                    <div style="padding:20px; text-align:center;">
-                        <h3 style="margin:0;">${name}</h3>
-                        <p style="font-weight:bold; color:${color}; font-size:1.3rem; margin:10px 0;">$${price}</p>
-                        <div class="paypal-slot" style="background:${color}; color:white; padding:12px; border-radius:6px; font-weight:bold;">
-                            Checkout
-                        </div>
-                    </div>
-                </div>`);
+            const img = document.getElementById('p-img').value || 'https://via.placeholder.com/300';
+            editor.addComponents(`<div class="product-card paypal-container" data-item="${name}" data-price="${price}" style="max-width:300px; margin:20px auto; background:white; color:#111; border-radius:12px; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.1); font-family:sans-serif;"><img src="${img}" style="width:100%; height:200px; object-fit:cover;"/><div style="padding:20px; text-align:center;"><h3 style="margin:0;">${name}</h3><p style="font-weight:bold; color:${color}; font-size:1.3rem; margin:10px 0;">$${price}</p><div class="paypal-slot" style="background:${color}; color:white; padding:12px; border-radius:6px; font-weight:bold;">Checkout</div></div></div>`);
         };
 
-        window.updateBrandColor = (c) => {
-            const slots = editor.DomComponents.getWrapper().find('.paypal-slot');
-            slots.forEach(s => s.addStyle({ background: c }));
+        window.deleteCurrentProject = async () => {
+            const repo = document.getElementById('site-name').value;
+            if(!repo || !confirm("Delete " + repo + " forever?")) return;
+            try {
+                const octo = new Octokit({ auth: githubToken });
+                await octo.repos.delete({ owner: githubUser, repo: repo });
+                location.reload();
+            } catch (e) { alert("Error deleting."); }
         };
-
-        firebase.auth().onAuthStateChanged(user => { if(user) fetchRepos(); });
     </script>
 </body>
 </html>
