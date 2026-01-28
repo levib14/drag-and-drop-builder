@@ -4,12 +4,11 @@
     <title>OpenBuilder | Sign In & Publish</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
     <style>
-        body, html { height: 100%; margin: 0; font-family: -apple-system, sans-serif; overflow: hidden; }
+        body, html { height: 100%; margin: 0; font-family: -apple-system, sans-serif; overflow: hidden; background: #1e1e1e; }
         .panel__top { 
             padding: 10px 20px; 
             background: #1e1e1e; 
@@ -27,7 +26,7 @@
             padding: 8px;
             border-radius: 4px;
             outline: none;
-            width: 200px;
+            width: 180px;
         }
         button {
             padding: 8px 16px;
@@ -37,15 +36,30 @@
             font-weight: 600;
             transition: 0.2s;
         }
-        .btn-download { background: #444; color: white; }
         .btn-github { background: #2ea44f; color: white; }
-        .btn-github:hover { background: #2c974b; transform: translateY(-1px); }
+        .btn-github:hover { background: #2c974b; }
+        
+        /* Success Message Styling */
+        #status-display {
+            font-size: 13px;
+            margin-right: 15px;
+            max-width: 300px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .success-text { color: #2ea44f; font-weight: bold; }
+        .error-text { color: #ff4d4d; }
+        .success-link { color: #58a6ff; text-decoration: none; margin-left: 5px; border-bottom: 1px solid transparent; }
+        .success-link:hover { border-bottom: 1px solid #58a6ff; }
+
         #gjs { height: calc(100vh - 56px) !important; }
+        
         #loader {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.85);
             color: white;
             z-index: 1000;
             flex-direction: column;
@@ -57,24 +71,26 @@
 <body>
 
     <div id="loader">
-        <h1 id="loader-title">Publishing...</h1>
-        <p id="loader-status">Please wait a moment.</p>
+        <h1 id="loader-title">Pushing to GitHub...</h1>
+        <p id="loader-status">Preparing...</p>
     </div>
 
     <div class="panel__top">
         <div class="logo"><b>OpenBuilder</b></div>
+        
         <div class="btns-right">
-            <input type="text" id="site-name" placeholder="Website Name (No spaces)">
-            <button class="btn-download" onclick="downloadSite()">Download HTML</button>
-            <button class="btn-github" onclick="loginAndPublish()">🚀 Sign in & Push</button>
-            <button style="background:transparent; color:#888; font-size:12px;" onclick="firebase.auth().signOut().then(() => alert('Signed Out'))">Sign Out</button>
+            <div id="status-display"></div>
+            
+            <input type="text" id="site-name" placeholder="Site Name">
+            <button class="btn-github" onclick="loginAndPublish()">🚀 Publish Site</button>
+            <button style="background:transparent; color:#888; font-size:11px;" onclick="firebase.auth().signOut()">Sign Out</button>
         </div>
     </div>
 
     <div id="gjs">
         <section style="padding: 100px 50px; text-align: center; background-color: #f9f9f9;">
-            <h1>Instant E-Commerce Site</h1>
-            <p>Edit this text, drag an image, or add a PayPal button.</p>
+            <h1>OpenBuilder E-Commerce</h1>
+            <p>Edit this site and hit Publish. Your link will appear at the top.</p>
         </section>
     </div>
 
@@ -89,7 +105,6 @@
         
         firebase.initializeApp(firebaseConfig);
 
-        // GrapesJS Initialization (Old Code Kept)
         const editor = grapesjs.init({
             container: '#gjs',
             fromElement: true,
@@ -97,107 +112,86 @@
             storageManager: false,
             blockManager: {
                 blocks: [
-                    { id: 'section', label: 'Section', content: '<section style="padding:50px; text-align:center;"><h2>New Section</h2></section>' },
-                    { id: 'text', label: 'Text', content: '<p>Edit your text here...</p>' },
-                    { id: 'image', label: 'Image', content: { type: 'image' } },
-                    { id: 'paypal', label: '<b>PayPal Button</b>', content: `
-                        <div style="padding: 20px; text-align: center; border: 2px solid #ffc439; border-radius: 8px;">
-                            <div id="paypal-button-container"></div>
-                            <p style="font-size:12px; color:#666;">(Button activates after publish)</p>
-                        </div>` 
-                    }
+                    { id: 'text', label: 'Text', content: '<p>Edit me!</p>' },
+                    { id: 'image', label: 'Image', content: { type: 'image' } }
                 ]
             }
         });
 
         window.loginAndPublish = async function() {
-            const rawName = document.getElementById('site-name').value.trim();
-            const siteName = rawName.replace(/\s+/g, '-').toLowerCase();
-            const statusText = document.getElementById('loader-status');
+            const statusBox = document.getElementById('status-display');
+            const siteInput = document.getElementById('site-name');
+            const siteName = siteInput.value.trim().replace(/\s+/g, '-').toLowerCase();
             
-            if (!siteName) return alert("Please enter a name for your website.");
+            if (!siteName) {
+                statusBox.innerHTML = '<span class="error-text">⚠️ Enter a site name</span>';
+                return;
+            }
 
-            // 1. Setup Provider with Force-Consent
+            statusBox.innerHTML = '<span>Logging in...</span>';
+
             const provider = new firebase.auth.GithubAuthProvider();
             provider.addScope('repo'); 
-            provider.setCustomParameters({ 'prompt': 'consent' }); 
+            // provider.setCustomParameters({ 'prompt': 'consent' }); // Optional: remove if you want it to remember you
 
             try {
-                // 2. Sign In
                 const result = await firebase.auth().signInWithPopup(provider);
                 const token = result.credential.accessToken;
                 const githubUser = result.additionalUserInfo.username;
 
                 document.getElementById('loader').style.display = 'flex';
-                statusText.innerText = "Checking availability...";
-
                 const octokit = new Octokit({ auth: token });
 
-                // 3. CHECK IF NAME IS TAKEN
+                // 1. SILENT NAME CHECK
+                document.getElementById('loader-status').innerText = "Checking if name is taken...";
                 try {
                     await octokit.repos.get({ owner: githubUser, repo: siteName });
+                    // If we get here, it means the repo EXISTS
                     document.getElementById('loader').style.display = 'none';
-                    return alert(`❌ The name "${siteName}" is already taken on your GitHub. Please choose a different name.`);
+                    statusBox.innerHTML = `<span class="error-text">❌ "${siteName}" already exists!</span>`;
+                    return;
                 } catch (e) {
-                    // 404 means the name is available! We continue.
-                    if (e.status !== 404) throw e; 
+                    if (e.status !== 404) throw e; // Only 404 is good (means name is free)
                 }
 
-                // 4. Create the Repo
-                statusText.innerText = "Creating repository...";
-                await octokit.request('POST /user/repos', {
-                    name: siteName,
-                    auto_init: true
-                });
+                // 2. CREATE REPO
+                document.getElementById('loader-status').innerText = "Creating repository...";
+                await octokit.request('POST /user/repos', { name: siteName, auto_init: true });
 
-                // Small delay for GitHub backend
+                // 3. UPLOAD CONTENT
                 await new Promise(r => setTimeout(r, 2000));
-
-                // 5. Prepare & Upload Content
-                statusText.innerText = "Uploading code...";
-                const html = editor.getHtml();
-                const css = editor.getCss();
-                const finalCode = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${css}</style></head><body>${html}</body></html>`;
+                document.getElementById('loader-status').innerText = "Uploading files...";
+                const finalCode = `<!DOCTYPE html><html><style>${editor.getCss()}</style><body>${editor.getHtml()}</body></html>`;
 
                 await octokit.repos.createOrUpdateFileContents({
                     owner: githubUser,
                     repo: siteName,
                     path: 'index.html',
-                    message: 'Initial deploy from OpenBuilder',
+                    message: 'Deploy',
                     content: btoa(unescape(encodeURIComponent(finalCode)))
                 });
 
-                // 6. Enable Pages
-                statusText.innerText = "Activating live site...";
+                // 4. ACTIVATE PAGES
+                document.getElementById('loader-status').innerText = "Going live...";
                 await octokit.request('POST /repos/{owner}/{repo}/pages', {
                     owner: githubUser,
                     repo: siteName,
                     source: { branch: 'main', path: '/' }
                 });
 
+                // 5. SUCCESS UI
                 document.getElementById('loader').style.display = 'none';
-                alert(`🚀 SUCCESS! Site is live: https://${githubUser}.github.io/${siteName}/`);
+                const liveUrl = `https://${githubUser}.github.io/${siteName}/`;
+                statusBox.innerHTML = `
+                    <span class="success-text">🚀 Published!</span>
+                    <a href="${liveUrl}" target="_blank" class="success-link">View Site</a>
+                `;
 
             } catch (error) {
                 document.getElementById('loader').style.display = 'none';
                 console.error(error);
-                
-                if (error.status === 403 || error.status === 404) {
-                    alert("Permission Denied: Please check the 'Repositories' box on the GitHub popup that just appeared. If you didn't see it, try revoking the app in GitHub settings first.");
-                } else {
-                    alert("Error: " + error.message);
-                }
+                statusBox.innerHTML = `<span class="error-text">❌ Error: ${error.status || 'Failed'}</span>`;
             }
-        };
-
-        window.downloadSite = function() {
-            const html = editor.getHtml();
-            const css = editor.getCss();
-            const blob = new Blob([`<html><style>${css}</style><body>${html}</body></html>`], {type: "text/html"});
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = "index.html";
-            a.click();
         };
     </script>
 </body>
