@@ -87,13 +87,11 @@
     <script type="module">
         import { Octokit } from "https://cdn.skypack.dev/@octokit/rest";
 
-        // --- FIREBASE CONFIGURATION ---
-        // REPLACE THESE WITH YOUR KEYS FROM FIREBASE CONSOLE
-        const firebaseConfig = {
-            apiKey: "AIzaSyBtcrbgIblZlg5mqGJPaGTFctCoTPrY-WQ",
-            authDomain: "web-maker-c6261.firebaseapp.com",
-            projectId: "web-maker-c6261"
-        };
+       const firebaseConfig = {
+    apiKey: "FIREBASE_API_KEY_PLACEHOLDER",
+    authDomain: "FIREBASE_AUTH_DOMAIN_PLACEHOLDER",
+    projectId: "FIREBASE_PROJECT_ID_PLACEHOLDER"
+};
         
         firebase.initializeApp(firebaseConfig);
         const provider = new firebase.auth.GithubAuthProvider();
