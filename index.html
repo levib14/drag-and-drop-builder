@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>OpenBuilder | Final Integration</title>
+    <title>OpenBuilder | Final Version</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -13,7 +13,6 @@
         .btns-right { display: flex; gap: 10px; align-items: center; }
         #site-name { background: #333; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; outline: none; width: 200px; }
         button { padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; }
-        .btn-download { background: #444; color: white; }
         .btn-github { background: #2ea44f; color: white; }
         #gjs { height: calc(100vh - 56px) !important; }
         #loader { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); color: white; z-index: 1000; flex-direction: column; justify-content: center; align-items: center; }
@@ -30,16 +29,15 @@
         <div class="logo"><b>OpenBuilder</b></div>
         <div class="btns-right">
             <input type="text" id="site-name" placeholder="Website Name (No spaces)">
-            <button class="btn-download" onclick="downloadSite()">Download HTML</button>
             <button class="btn-github" onclick="loginAndPublish()">🚀 Sign in & Push</button>
-            <button style="background:transparent; color:#888; font-size:11px;" onclick="firebase.auth().signOut().then(() => alert('Signed Out. Now refresh and try again.'))">Sign Out</button>
+            <button style="background:transparent; color:#888; font-size:11px;" onclick="firebase.auth().signOut().then(() => alert('Signed Out'))">Sign Out</button>
         </div>
     </div>
 
     <div id="gjs">
         <section style="padding: 100px 50px; text-align: center; background-color: #f9f9f9;">
-            <h1>Your Instant Store</h1>
-            <p>Edit this text, then click "Sign in & Push".</p>
+            <h1>Ready to Publish</h1>
+            <p>Edit this and click the green button.</p>
         </section>
     </div>
 
@@ -55,8 +53,11 @@
         firebase.initializeApp(firebaseConfig);
         const provider = new firebase.auth.GithubAuthProvider();
         
-        // This is the "Magic Line" that requests the correct permissions
+        // REQUEST REPO PERMISSION
         provider.addScope('repo'); 
+        
+        // FORCE THE PERMISSION PROMPT
+        provider.setCustomParameters({ 'prompt': 'consent' });
 
         const editor = grapesjs.init({
             container: '#gjs',
@@ -65,8 +66,7 @@
             storageManager: false,
             blockManager: {
                 blocks: [
-                    { id: 'section', label: 'Section', content: '<section style="padding:50px; text-align:center;"><h2>New Section</h2></section>' },
-                    { id: 'text', label: 'Text', content: '<p>Edit your text...</p>' },
+                    { id: 'text', label: 'Text', content: '<p>Edit me!</p>' },
                     { id: 'image', label: 'Image', content: { type: 'image' } }
                 ]
             }
@@ -78,32 +78,20 @@
             if (!siteName) return alert("Please enter a name!");
 
             try {
-                // 1. Authenticate with GitHub
+                // 1. Sign In
                 const result = await firebase.auth().signInWithPopup(provider);
                 const token = result.credential.accessToken;
                 const githubUser = result.additionalUserInfo.username;
 
                 document.getElementById('loader').style.display = 'flex';
-                statusText.innerText = "Checking permissions...";
-
                 const octokit = new Octokit({ auth: token });
 
-                // Verify the token has repo access
-                const checkAuth = await fetch(`https://api.github.com/zen`, {
-                    headers: { 'Authorization': `token ${token}` }
-                });
-                const scopes = checkAuth.headers.get('x-oauth-scopes') || "";
-                
-                if (!scopes.includes('repo')) {
-                    throw new Error("Missing 'repo' permission. Did you check the box on the GitHub popup?");
-                }
-
-                // 2. Create the Repo
+                // 2. CREATE REPO
                 statusText.innerText = "Creating repository...";
                 await octokit.request('POST /user/repos', { name: siteName, auto_init: true });
 
-                // 3. Upload File
-                await new Promise(r => setTimeout(r, 2500)); // Wait for GitHub to wake up
+                // 3. UPLOAD FILE
+                await new Promise(r => setTimeout(r, 2000));
                 statusText.innerText = "Uploading files...";
                 const finalCode = `<!DOCTYPE html><html><style>${editor.getCss()}</style><body>${editor.getHtml()}</body></html>`;
 
@@ -115,7 +103,7 @@
                     content: btoa(unescape(encodeURIComponent(finalCode)))
                 });
 
-                // 4. Enable Pages
+                // 4. ENABLE PAGES
                 statusText.innerText = "Making your site live...";
                 await octokit.request('POST /repos/{owner}/{repo}/pages', {
                     owner: githubUser,
@@ -128,16 +116,13 @@
 
             } catch (error) {
                 document.getElementById('loader').style.display = 'none';
-                alert("Error: " + error.message);
+                // If the error is about permissions, explain exactly how to fix it
+                if (error.status === 403 || error.status === 404) {
+                    alert("STILL BLOCKED: You MUST check the 'repo' box on the GitHub popup. If you didn't see the box, use an Incognito window.");
+                } else {
+                    alert("Error: " + error.message);
+                }
             }
-        };
-
-        window.downloadSite = function() {
-            const blob = new Blob([`<html><style>${editor.getCss()}</style><body>${editor.getHtml()}</body></html>`], {type: "text/html"});
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = "index.html";
-            a.click();
         };
     </script>
 </body>
