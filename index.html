@@ -57,7 +57,7 @@
 <body>
 
     <div id="loader">
-        <h1 id="loader-title">Publishing to GitHub...</h1>
+        <h1 id="loader-title">Publishing...</h1>
         <p id="loader-status">Please wait a moment.</p>
     </div>
 
@@ -67,13 +67,14 @@
             <input type="text" id="site-name" placeholder="Website Name (No spaces)">
             <button class="btn-download" onclick="downloadSite()">Download HTML</button>
             <button class="btn-github" onclick="loginAndPublish()">🚀 Sign in & Push</button>
+            <button style="background:transparent; color:#888; font-size:12px;" onclick="firebase.auth().signOut().then(() => alert('Signed Out'))">Sign Out</button>
         </div>
     </div>
 
     <div id="gjs">
         <section style="padding: 100px 50px; text-align: center; background-color: #f9f9f9;">
             <h1>Instant E-Commerce Site</h1>
-            <p>Edit this text, then click Sign In & Push.</p>
+            <p>Edit this text, drag an image, or add a PayPal button.</p>
         </section>
     </div>
 
@@ -87,14 +88,8 @@
         };
         
         firebase.initializeApp(firebaseConfig);
-        const provider = new firebase.auth.GithubAuthProvider();
-        
-        // 1. Ask for repo access
-        provider.addScope('repo'); 
-        
-        // 2. FORCE GitHub to show the permission checkbox every time
-        provider.setCustomParameters({ 'prompt': 'consent' });
 
+        // GrapesJS Initialization (Old Code Kept)
         const editor = grapesjs.init({
             container: '#gjs',
             fromElement: true,
@@ -104,55 +99,76 @@
                 blocks: [
                     { id: 'section', label: 'Section', content: '<section style="padding:50px; text-align:center;"><h2>New Section</h2></section>' },
                     { id: 'text', label: 'Text', content: '<p>Edit your text here...</p>' },
-                    { id: 'image', label: 'Image', content: { type: 'image' } }
+                    { id: 'image', label: 'Image', content: { type: 'image' } },
+                    { id: 'paypal', label: '<b>PayPal Button</b>', content: `
+                        <div style="padding: 20px; text-align: center; border: 2px solid #ffc439; border-radius: 8px;">
+                            <div id="paypal-button-container"></div>
+                            <p style="font-size:12px; color:#666;">(Button activates after publish)</p>
+                        </div>` 
+                    }
                 ]
             }
         });
 
         window.loginAndPublish = async function() {
-            const siteName = document.getElementById('site-name').value.trim().replace(/\s+/g, '-').toLowerCase();
+            const rawName = document.getElementById('site-name').value.trim();
+            const siteName = rawName.replace(/\s+/g, '-').toLowerCase();
             const statusText = document.getElementById('loader-status');
             
             if (!siteName) return alert("Please enter a name for your website.");
 
+            // 1. Setup Provider with Force-Consent
+            const provider = new firebase.auth.GithubAuthProvider();
+            provider.addScope('repo'); 
+            provider.setCustomParameters({ 'prompt': 'consent' }); 
+
             try {
-                // This will now ALWAYS show the GitHub popup with the checkboxes
+                // 2. Sign In
                 const result = await firebase.auth().signInWithPopup(provider);
                 const token = result.credential.accessToken;
                 const githubUser = result.additionalUserInfo.username;
 
                 document.getElementById('loader').style.display = 'flex';
-                statusText.innerText = "Connecting...";
+                statusText.innerText = "Checking availability...";
 
                 const octokit = new Octokit({ auth: token });
 
-                // Create Repo
+                // 3. CHECK IF NAME IS TAKEN
+                try {
+                    await octokit.repos.get({ owner: githubUser, repo: siteName });
+                    document.getElementById('loader').style.display = 'none';
+                    return alert(`❌ The name "${siteName}" is already taken on your GitHub. Please choose a different name.`);
+                } catch (e) {
+                    // 404 means the name is available! We continue.
+                    if (e.status !== 404) throw e; 
+                }
+
+                // 4. Create the Repo
                 statusText.innerText = "Creating repository...";
                 await octokit.request('POST /user/repos', {
                     name: siteName,
                     auto_init: true
                 });
 
-                // Wait for GitHub's backend to propagate
+                // Small delay for GitHub backend
                 await new Promise(r => setTimeout(r, 2000));
 
-                // Prepare Content
+                // 5. Prepare & Upload Content
                 statusText.innerText = "Uploading code...";
                 const html = editor.getHtml();
                 const css = editor.getCss();
-                const finalCode = `<!DOCTYPE html><html><head><style>${css}</style></head><body>${html}</body></html>`;
+                const finalCode = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${css}</style></head><body>${html}</body></html>`;
 
-                // Upload File
                 await octokit.repos.createOrUpdateFileContents({
                     owner: githubUser,
                     repo: siteName,
                     path: 'index.html',
-                    message: 'Deploy from OpenBuilder',
+                    message: 'Initial deploy from OpenBuilder',
                     content: btoa(unescape(encodeURIComponent(finalCode)))
                 });
 
-                // Turn on Pages
-                statusText.innerText = "Finalizing live site...";
+                // 6. Enable Pages
+                statusText.innerText = "Activating live site...";
                 await octokit.request('POST /repos/{owner}/{repo}/pages', {
                     owner: githubUser,
                     repo: siteName,
@@ -167,7 +183,7 @@
                 console.error(error);
                 
                 if (error.status === 403 || error.status === 404) {
-                    alert("Permission Denied: Ensure you check the 'repo' box on the GitHub popup that just appeared.");
+                    alert("Permission Denied: Please check the 'Repositories' box on the GitHub popup that just appeared. If you didn't see it, try revoking the app in GitHub settings first.");
                 } else {
                     alert("Error: " + error.message);
                 }
@@ -175,7 +191,9 @@
         };
 
         window.downloadSite = function() {
-            const blob = new Blob([`<html><style>${editor.getCss()}</style><body>${editor.getHtml()}</body></html>`], {type: "text/html"});
+            const html = editor.getHtml();
+            const css = editor.getCss();
+            const blob = new Blob([`<html><style>${css}</style><body>${html}</body></html>`], {type: "text/html"});
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
             a.download = "index.html";
