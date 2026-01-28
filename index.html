@@ -1,47 +1,80 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>OpenBuilder Enterprise | Multi-Page Commerce</title>
+    <title>OpenBuilder | Secure Sync & Store</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
     <style>
-        body, html { height: 100%; margin: 0; font-family: -apple-system, sans-serif; background: #1e1e1e; color: white; overflow: hidden; }
-        .panel__top { padding: 10px 20px; background: #1e1e1e; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; height: 60px; }
-        .btns-right { display: flex; gap: 10px; align-items: center; }
-        input, select { background: #333; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; font-size: 13px; }
-        button { padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-weight: 600; background: #444; color: white; transition: 0.3s; }
-        .btn-github { background: #2ea44f; }
-        .btn-add-page { background: #3b82f6; font-size: 11px; padding: 5px 10px; }
-        #status-display { font-size: 12px; color: #888; }
-        #gjs { height: calc(100vh - 60px) !important; }
+        body, html { height: 100%; margin: 0; font-family: 'Inter', sans-serif; background: #111; color: white; overflow: hidden; }
+        .app-header { padding: 10px 20px; background: #1a1a1a; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; height: 55px; }
+        .main-container { display: flex; height: calc(100vh - 55px); }
         
-        /* Layout for multi-page sidebar */
-        .app-container { display: flex; height: calc(100vh - 60px); }
-        .page-sidebar { width: 150px; background: #252525; border-right: 1px solid #333; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
-        .page-item { padding: 8px; background: #333; border-radius: 4px; cursor: pointer; font-size: 12px; text-align: center; }
-        .page-item.active { background: #3b82f6; }
+        /* Sidebar */
+        .sidebar { width: 320px; background: #1a1a1a; border-right: 1px solid #333; display: flex; flex-direction: column; overflow-y: auto; padding: 20px; gap: 20px; }
+        .sidebar-section { border-bottom: 1px solid #333; padding-bottom: 20px; }
+        .sidebar h3 { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; }
+        
+        input, select { background: #2a2a2a; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 13px; margin-bottom: 12px; }
+        label { font-size: 11px; color: #888; display: block; margin-bottom: 5px; }
+
+        .btn { width: 100%; padding: 12px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn-save { background: #22c55e; color: white; }
+        .btn-save:hover { background: #16a34a; }
+        .btn-blue { background: #3b82f6; color: white; }
+        .btn-outline { background: transparent; border: 1px solid #444; color: #ccc; margin-top: 5px; }
+        .btn-delete { background: #ef444422; color: #ef4444; border: 1px solid #ef444444; font-size: 11px; margin-top: 30px; }
+        .btn-delete:hover { background: #ef4444; color: white; }
+
+        #gjs { flex-grow: 1; }
+        #loader-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; flex-direction: column; justify-content: center; align-items: center; }
+        .status-pill { background: #3b82f622; color: #3b82f6; padding: 4px 12px; border-radius: 20px; font-size: 12px; border: 1px solid #3b82f644; }
     </style>
 </head>
 <body>
 
-    <div class="panel__top">
-        <div class="logo"><b>OpenBuilder</b> <small style="color:#3b82f6">Enterprise</small></div>
-        <div class="btns-right">
-            <div id="status-display">Ready</div>
-            <input type="text" id="site-name" placeholder="Project Name...">
-            <button class="btn-github" onclick="publishAllPages()">🚀 Publish Entire Site</button>
-        </div>
-    </div>
+    <div id="loader-overlay"><h2 id="loader-msg">Syncing Project...</h2></div>
 
-    <div class="app-container">
-        <div class="page-sidebar" id="page-list">
-            <div style="font-size: 10px; color: #888; text-transform: uppercase;">Pages</div>
-            <button class="btn-add-page" onclick="createNewPage()">+ New Page</button>
+    <header class="app-header">
+        <div class="logo"><b>OpenBuilder</b> <span class="status-pill">Enterprise</span></div>
+        <div style="display:flex; gap:10px; align-items: center;">
+            <input type="text" id="site-name" placeholder="Project Name" style="width:180px; margin:0;">
+            <button class="btn btn-save" onclick="publishSite()" style="width:auto; margin:0;">🚀 Save & Publish</button>
         </div>
-        <div id="gjs" style="flex-grow: 1;"></div>
+    </header>
+
+    <div class="main-container">
+        <div class="sidebar">
+            
+            <div class="sidebar-section">
+                <h3>Cloud Projects</h3>
+                <select id="repo-list"><option value="">Connect GitHub to load...</option></select>
+                <button class="btn btn-outline" onclick="importProject()">📂 Open Selected</button>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Settings & Security</h3>
+                <label>PayPal Client ID (Obfuscated on Save)</label>
+                <input type="password" id="paypal-id" placeholder="Paste Client ID">
+                
+                <label>Theme Brand Color</label>
+                <input type="color" id="global-color" value="#3b82f6" onchange="updateBrandColor(this.value)">
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Quick Product Creator</h3>
+                <input type="text" id="p-name" placeholder="Item Name">
+                <input type="number" id="p-price" placeholder="Price">
+                <input type="text" id="p-img" placeholder="Image URL">
+                <button class="btn btn-blue" onclick="addNewProduct()">Add Product to Canvas</button>
+            </div>
+
+            <button class="btn btn-delete" onclick="deleteCurrentProject()">Delete Repository Forever</button>
+        </div>
+
+        <div id="gjs"></div>
     </div>
 
     <script type="module">
@@ -54,144 +87,183 @@
         };
         firebase.initializeApp(firebaseConfig);
 
-        // --- MULTI-PAGE STORAGE ---
-        let sitePages = {
-            'index.html': { 
-                html: `<section style="padding:100px 20px; text-align:center; background:#f4f4f4; color:#333;">
-                        <h1>Welcome to My Store</h1>
-                        <p>Drag elements here to start building.</p>
-                        <img src="https://via.placeholder.com/300" style="display:block; margin:20px auto; border-radius:10px;"/>
-                       </section>`, 
-                css: '' 
-            }
-        };
-        let activePage = 'index.html';
-
-        // --- INITIALIZE EDITOR ---
         const editor = grapesjs.init({
             container: '#gjs',
             height: '100%',
             fromElement: true,
             storageManager: false,
-            canvas: { styles: ['https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'] },
-            blockManager: {
-                blocks: [
-                    { id: 'section', label: 'Section', category: 'Layout', content: '<section style="padding:50px; min-height:200px;"><h2>New Section</h2></section>' },
-                    { id: 'text', label: 'Text', category: 'Basic', content: '<div style="padding:10px;">Edit this text</div>' },
-                    { id: 'image', label: 'Image', category: 'Basic', content: { type: 'image', style: { width: '300px', height: 'auto', display: 'block', 'margin-left': 'auto', 'margin-right': 'auto' } } },
-                    { id: 'paypal', label: '<b>PayPal Button</b>', category: 'Commerce', content: { type: 'paypal-button' } },
-                    { id: 'contact', label: 'Contact Form', category: 'Forms', content: `
-                        <form style="padding:20px; background:#fff; color:#333; border-radius:8px; max-width:400px; margin:auto;">
-                            <input type="text" placeholder="Name" style="width:100%; margin-bottom:10px; padding:8px;"/>
-                            <input type="email" placeholder="Email" style="width:100%; margin-bottom:10px; padding:8px;"/>
-                            <textarea placeholder="Message" style="width:100%; margin-bottom:10px; padding:8px;"></textarea>
-                            <button type="button" style="background:#3b82f6; color:white; width:100%; padding:10px;">Send Message</button>
-                        </form>` 
-                    }
-                ]
-            }
         });
 
-        // Setup Component Types (PayPal)
-        editor.DomComponents.addType('paypal-button', {
-            model: {
-                defaults: {
-                    tagName: 'div',
-                    attributes: { 'data-price': '49.99', 'data-item': 'Store Product', class: 'paypal-container' },
-                    traits: [{ type: 'text', label: 'Name', name: 'data-item' }, { type: 'text', label: 'Price ($)', name: 'data-price' }],
-                    components: `<div style="padding:20px; border:2px solid #ffc439; background:#fff; color:#111; text-align:center; border-radius:10px;">
-                        <h3>Buy <span class="item-name">Store Product</span></h3>
-                        <p>$<span class="item-price">49.99</span></p>
-                        <div style="background:#ffc439; padding:10px; font-weight:bold;">PayPal Active on Live</div>
-                    </div>`
-                },
-                init() { this.on('change:attributes:data-item change:attributes:data-price', this.updateContent); },
-                updateContent() {
-                    const attr = this.getAttributes();
-                    this.getEl().querySelector('.item-name').innerText = attr['data-item'];
-                    this.getEl().querySelector('.item-price').innerText = attr['data-price'];
+        // Add default sample text
+        editor.setComponents('<section style="padding:100px 50px; text-align:center;"><h1>My New Store</h1><p>Start adding products from the sidebar!</p></section>');
+
+        let githubToken = "";
+        let githubUser = "";
+
+        const connectGitHub = async () => {
+            if (githubToken) return new Octokit({ auth: githubToken });
+            const result = await firebase.auth().signInWithPopup(new firebase.auth.GithubAuthProvider().addScope('repo').addScope('delete_repo'));
+            githubToken = result.credential.accessToken;
+            githubUser = result.additionalUserInfo.username;
+            fetchRepos();
+            return new Octokit({ auth: githubToken });
+        };
+
+        async function fetchRepos() {
+            const octo = await connectGitHub();
+            const repos = await octo.repos.listForAuthenticatedUser({ sort: 'updated', per_page: 50 });
+            document.getElementById('repo-list').innerHTML = repos.data.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
+        }
+
+        // --- THE RELOAD ENGINE (Loads JSON first, then falls back to HTML) ---
+        window.importProject = async () => {
+            const repo = document.getElementById('repo-list').value;
+            const overlay = document.getElementById('loader-overlay');
+            overlay.style.display = 'flex';
+            
+            try {
+                const octo = await connectGitHub();
+                try {
+                    // 1. Try Loading Project JSON
+                    const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: 'project-data.json' });
+                    const projectData = JSON.parse(atob(res.data.content));
+                    editor.loadProjectData(projectData);
+                } catch (e) {
+                    // 2. Fallback to HTML if JSON is missing
+                    const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: 'index.html' });
+                    editor.setComponents(atob(res.data.content));
                 }
-            }
-        });
-
-        // --- PAGE LOGIC ---
-        window.renderPageList = () => {
-            const list = document.getElementById('page-list');
-            const items = Object.keys(sitePages).map(p => 
-                `<div class="page-item ${p === activePage ? 'active' : ''}" onclick="switchPage('${p}')">${p}</div>`
-            ).join('');
-            list.innerHTML = `<div style="font-size: 10px; color: #888; text-transform: uppercase;">Pages</div>` + items + 
-                            `<button class="btn-add-page" onclick="createNewPage()">+ New Page</button>`;
-        };
-
-        window.switchPage = (pageName) => {
-            sitePages[activePage] = { html: editor.getHtml(), css: editor.getCss() };
-            activePage = pageName;
-            editor.setComponents(sitePages[pageName].html);
-            editor.setStyle(sitePages[pageName].css);
-            renderPageList();
-        };
-
-        window.createNewPage = () => {
-            const name = prompt("Page name (e.g. about, shop):");
-            if(name) {
-                const filename = name.toLowerCase().replace(/\s+/g, '-') + '.html';
-                sitePages[filename] = { html: '<h1>' + name + ' Page</h1>', css: '' };
-                switchPage(filename);
+                document.getElementById('site-name').value = repo;
+                overlay.style.display = 'none';
+            } catch (e) {
+                overlay.style.display = 'none';
+                alert("Error importing project.");
             }
         };
 
-        // --- PUBLISHING ---
-        window.publishAllPages = async function() {
-            const siteName = document.getElementById('site-name').value.trim().replace(/\s+/g, '-').toLowerCase();
-            if (!siteName) return alert("Enter project name!");
+        // --- THE PUBLISH ENGINE (With Ghost Script Security) ---
+        window.publishSite = async () => {
+            const name = document.getElementById('site-name').value.trim();
+            const ppId = document.getElementById('paypal-id').value.trim() || 'sb';
+            if(!name) return alert("Please name your project.");
 
-            const status = document.getElementById('status-display');
-            status.innerText = "Authenticating...";
+            const overlay = document.getElementById('loader-overlay');
+            overlay.style.display = 'flex';
+            document.getElementById('loader-msg').innerText = "Securing & Syncing...";
 
             try {
-                const result = await firebase.auth().signInWithPopup(new firebase.auth.GithubAuthProvider().addScope('repo'));
-                const { accessToken } = result.credential;
-                const user = result.additionalUserInfo.username;
-                const octokit = new Octokit({ auth: accessToken });
+                const octo = await connectGitHub();
+                
+                // 1. OBFUSCATE PAYPAL ID
+                const secretKey = btoa(ppId); 
 
-                // Sync current page
-                sitePages[activePage] = { html: editor.getHtml(), css: editor.getCss() };
-
-                status.innerText = "🚀 Deploying Site...";
-                try { await octokit.request('POST /user/repos', { name: siteName, auto_init: true }); } catch (e) {}
-
-                for (const [name, content] of Object.entries(sitePages)) {
-                    const finalCode = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${content.css}</style>
-                        <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD"><\/script>
-                        </head><body>${content.html}
-                        <script>
+                // 2. CREATE THE GHOST INJECTION SCRIPT
+                const ghostScript = `
+                    (function() {
+                        const _k = atob("${secretKey}");
+                        const s = document.createElement('script');
+                        s.src = "https://www.paypal.com/sdk/js?client-id=" + _k + "&currency=USD";
+                        s.onload = () => {
                             document.querySelectorAll('.paypal-container').forEach(el => {
-                                const price = el.getAttribute('data-price');
-                                const name = el.getAttribute('data-item');
-                                el.innerHTML = '<div id="p-' + Math.random().toString(36).substr(2,5) + '"></div>';
-                                paypal.Buttons({ createOrder: (d, a) => a.order.create({ purchase_units: [{ description: name, amount: { value: price } }] }) }).render(el.firstChild);
+                                const p = el.getAttribute('data-price');
+                                const i = el.getAttribute('data-item');
+                                const slot = el.querySelector('.paypal-slot');
+                                if(!slot) return;
+                                slot.innerHTML = '';
+                                paypal.Buttons({
+                                    createOrder: (data, actions) => actions.order.create({
+                                        purchase_units: [{ description: i, amount: { value: p } }]
+                                    })
+                                }).render(slot);
                             });
-                        <\/script></body></html>`;
+                        };
+                        document.head.appendChild(s);
+                    })();
+                `;
 
-                    let sha = null;
-                    try { const res = await octokit.repos.getContent({ owner: user, repo: siteName, path: name }); sha = res.data.sha; } catch(e){}
+                // 3. GENERATE LIVE HTML
+                const finalHTML = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>${name}</title>
+                    <style>${editor.getCss()} body{margin:0; font-family:sans-serif;}</style>
+                </head>
+                <body>
+                    ${editor.getHtml()}
+                    <script type="text/javascript">${ghostScript}<\/script>
+                </body>
+                </html>`;
 
-                    await octokit.repos.createOrUpdateFileContents({
-                        owner: user, repo: siteName, path: name,
-                        message: 'Deploy', content: btoa(unescape(encodeURIComponent(finalCode))), sha
-                    });
-                }
+                // 4. PREPARE JSON FOR FUTURE EDITING
+                const projectJSON = JSON.stringify(editor.getProjectData());
 
-                await octokit.request('POST /repos/{owner}/{repo}/pages', { owner: user, repo: siteName, source: { branch: 'main', path: '/' } }).catch(e=>{});
+                // 5. UPLOAD TO GITHUB
+                try { await octo.request('POST /user/repos', { name: name, auto_init: true }); } catch (e) {}
+                await uploadFile(octo, name, 'project-data.json', projectJSON);
+                await uploadFile(octo, name, 'index.html', finalHTML);
+                await octo.request('POST /repos/{owner}/{repo}/pages', { owner: githubUser, repo: name, source: { branch: 'main', path: '/' } }).catch(e=>{});
 
-                status.innerHTML = `<a href="https://${user}.github.io/${siteName}/" target="_blank" style="color:#2ea44f">OPEN LIVE SITE ➔</a>`;
-            } catch (e) { alert(e.message); status.innerText = "Error"; }
+                overlay.style.display = 'none';
+                alert("Site Published! Check your GitHub Pages link in a few moments.");
+                fetchRepos();
+            } catch (e) {
+                overlay.style.display = 'none';
+                alert("Publish Failed: " + e.message);
+            }
         };
 
-        // Initial render
-        editor.setComponents(sitePages['index.html'].html);
-        renderPageList();
+        async function uploadFile(octo, repo, path, content) {
+            let sha = null;
+            try {
+                const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: path });
+                sha = res.data.sha;
+            } catch (e) {}
+            return octo.repos.createOrUpdateFileContents({
+                owner: githubUser, repo: repo, path: path,
+                message: 'OpenBuilder Sync', content: btoa(unescape(encodeURIComponent(content))), sha
+            });
+        }
+
+        window.deleteCurrentProject = async () => {
+            const repo = document.getElementById('site-name').value;
+            if(!repo || !confirm(`Delete "${repo}" forever?`)) return;
+            try {
+                const octo = await connectGitHub();
+                await octo.repos.delete({ owner: githubUser, repo: repo });
+                alert("Deleted.");
+                location.reload();
+            } catch (e) { alert("Error deleting repo. Check your permissions."); }
+        };
+
+        window.addNewProduct = () => {
+            const name = document.getElementById('p-name').value;
+            const price = document.getElementById('p-price').value;
+            const img = document.getElementById('p-img').value || 'https://via.placeholder.com/300';
+            const color = document.getElementById('global-color').value;
+
+            if(!name || !price) return alert("Missing details!");
+
+            editor.addComponents(`
+                <div class="product-card paypal-container" data-item="${name}" data-price="${price}" style="max-width:320px; margin:20px auto; background:white; color:#111; border-radius:12px; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.1); font-family:sans-serif;">
+                    <img src="${img}" style="width:100%; height:220px; object-fit:cover;"/>
+                    <div style="padding:20px; text-align:center;">
+                        <h3 style="margin:0;">${name}</h3>
+                        <p style="font-weight:bold; color:${color}; font-size:1.3rem; margin:10px 0;">$${price}</p>
+                        <div class="paypal-slot" style="background:${color}; color:white; padding:12px; border-radius:6px; font-weight:bold;">
+                            Checkout
+                        </div>
+                    </div>
+                </div>`);
+        };
+
+        window.updateBrandColor = (c) => {
+            const slots = editor.DomComponents.getWrapper().find('.paypal-slot');
+            slots.forEach(s => s.addStyle({ background: c }));
+        };
+
+        firebase.auth().onAuthStateChanged(user => { if(user) fetchRepos(); });
     </script>
 </body>
 </html>
