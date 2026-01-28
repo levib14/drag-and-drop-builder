@@ -56,7 +56,7 @@
 </head>
 <body>
 
-    <div id="loader"><h1>Publishing to GitHub...</h1><p>Please wait a moment.</p></div>
+    <div id="loader"><h1>Publishing to GitHub...</h1><p id="loader-status">Please wait a moment.</p></div>
 
     <div class="panel__top">
         <div class="logo"><b>OpenBuilder</b></div>
@@ -64,7 +64,7 @@
             <input type="text" id="site-name" placeholder="Website Name (No spaces)">
             <button class="btn-download" onclick="downloadSite()">Download HTML</button>
             <button class="btn-github" onclick="loginAndPublish()">🚀 Sign in & Push</button>
-            <button style="background:transparent; color:#888; font-size:12px;" onclick="firebase.auth().signOut().then(() => alert('Signed out!'))">Sign Out</button>
+            <button style="background:transparent; color:#888; font-size:12px;" onclick="firebase.auth().signOut().then(() => alert('Signed out! Clear your cache or Revoke the app on GitHub to reset permissions.'))">Sign Out</button>
         </div>
     </div>
 
@@ -87,8 +87,10 @@
         firebase.initializeApp(firebaseConfig);
         const provider = new firebase.auth.GithubAuthProvider();
         
-        // This requests permission to create repositories
+        // FORCING REPO SCOPE
         provider.addScope('repo'); 
+        // Force GitHub to show the authorization prompt again if permissions were denied
+        provider.setCustomParameters({ 'allow_signup': 'false' });
 
         const editor = grapesjs.init({
             container: '#gjs',
@@ -112,6 +114,8 @@
 
         window.loginAndPublish = async function() {
             const siteName = document.getElementById('site-name').value.trim().replace(/\s+/g, '-').toLowerCase();
+            const statusText = document.getElementById('loader-status');
+            
             if (!siteName) return alert("Please enter a name for your website.");
 
             try {
@@ -120,49 +124,50 @@
                 const token = result.credential.accessToken;
                 const githubUser = result.additionalUserInfo.username;
 
-                if (!token) throw new Error("No access token found. Try signing out and back in.");
+                if (!token) throw new Error("No access token found.");
+
+                // DEBUGGER: Check what permissions GitHub actually gave us
+                const checkAuth = await fetch(`https://api.github.com/zen`, {
+                    headers: { 'Authorization': `token ${token}` }
+                });
+                const activeScopes = checkAuth.headers.get('x-oauth-scopes');
+                console.log("Current Permissions:", activeScopes);
+
+                if (!activeScopes || !activeScopes.includes('repo')) {
+                    throw new Error("Missing 'repo' permission. Please Revoke the app on GitHub and Sign In again.");
+                }
 
                 document.getElementById('loader').style.display = 'flex';
+                statusText.innerText = "Creating repository...";
 
                 const octokit = new Octokit({ auth: token });
 
                 // 2. Create the Repo
-                await octokit.repos.createForAuthenticatedUser({
+                await octokit.request('POST /user/repos', {
                     name: siteName,
                     auto_init: true,
                     description: "Site built with OpenBuilder"
                 });
 
+                // Wait for GitHub to initialize the repo
+                await new Promise(r => setTimeout(r, 2000));
+                statusText.innerText = "Uploading files...";
+
                 // 3. Prep HTML
                 const html = editor.getHtml();
                 const css = editor.getCss();
-                const finalCode = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>${siteName}</title>
-                    <style>${css}</style>
-                    <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD"><\/script>
-                </head>
-                <body>
-                    ${html}
-                    <script>
-                        if(document.getElementById('paypal-button-container')) {
-                            paypal.Buttons().render('#paypal-button-container');
-                        }
-                    <\/script>
-                </body>
-                </html>`;
+                const finalCode = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${siteName}</title><style>${css}</style><script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD"><\/script></head><body>${html}<script>if(document.getElementById('paypal-button-container')){paypal.Buttons().render('#paypal-button-container');}<\/script></body></html>`;
 
-                // 4. Upload File
+                // 4. Upload index.html
                 await octokit.repos.createOrUpdateFileContents({
                     owner: githubUser,
                     repo: siteName,
                     path: 'index.html',
-                    message: 'Initial deployment from OpenBuilder',
+                    message: 'Initial deployment',
                     content: btoa(unescape(encodeURIComponent(finalCode)))
                 });
+
+                statusText.innerText = "Activating GitHub Pages...";
 
                 // 5. Enable Pages
                 await octokit.request('POST /repos/{owner}/{repo}/pages', {
@@ -176,10 +181,12 @@
 
             } catch (error) {
                 document.getElementById('loader').style.display = 'none';
-                console.error(error);
+                console.error("Full Error Object:", error);
                 
                 if (error.status === 403 || error.message.includes('Resource not accessible')) {
-                    alert("Permission Error: Please click 'Sign Out' at the top right, then try again. When the GitHub popup appears, make sure you authorize repository access.");
+                    alert("STILL BLOCKED: GitHub is not giving this session 'repo' access. \n\n1. Go to GitHub Settings > Applications and REVOKE 'web-maker'. \n2. Click 'Sign Out' in this app. \n3. Sign in again and check the REPO box.");
+                } else if (error.status === 422) {
+                    alert("Error: A repository with this name already exists on your GitHub!");
                 } else {
                     alert("Error: " + error.message);
                 }
