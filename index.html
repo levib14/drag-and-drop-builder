@@ -1,68 +1,79 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>OpenBuilder | Integrated Suite</title>
+    <title>OpenBuilder | Refined</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
     <style>
-        body, html { height: 100%; margin: 0; font-family: 'Inter', sans-serif; background: #222; color: white; overflow: hidden; }
+        :root { --panel-bg: #1e1e1e; --border: #333; --accent: #3b82f6; }
+        body, html { height: 100%; margin: 0; font-family: 'Inter', sans-serif; background: #111; color: white; overflow: hidden; }
         
-        /* Top Toolbar */
-        .toolbar { 
-            height: 45px; background: #1a1a1a; display: flex; 
+        /* Fixed Header */
+        .app-header { 
+            height: 50px; background: var(--panel-bg); display: flex; 
             justify-content: space-between; align-items: center; 
-            padding: 0 15px; border-bottom: 1px solid #333; 
-        }
-        .device-view { display: flex; gap: 15px; }
-        .device-view button { background: none; border: none; color: #888; cursor: pointer; font-size: 18px; transition: 0.2s; }
-        .device-view button:hover, .device-view button.active { color: #3b82f6; }
-
-        /* Sync Drawer */
-        #sync-drawer {
-            position: fixed; left: -300px; top: 45px; bottom: 0; width: 300px;
-            background: #1a1a1a; border-right: 1px solid #333; z-index: 100;
-            transition: 0.3s; padding: 20px; box-sizing: border-box;
-        }
-        #sync-drawer.open { left: 0; }
-        
-        .drawer-toggle { 
-            background: #333; color: #ccc; border: none; padding: 5px 10px; 
-            border-radius: 4px; cursor: pointer; font-size: 12px;
+            padding: 0 15px; border-bottom: 1px solid var(--border);
+            box-sizing: border-box;
         }
 
-        input, select { background: #2a2a2a; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; width: 100%; margin-bottom: 10px; }
-        .btn-pub { background: #22c55e; color: white; border: none; padding: 6px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .header-left, .header-right { display: flex; align-items: center; gap: 12px; }
 
-        #gjs { height: calc(100vh - 45px) !important; }
+        /* The Styled Dropdown */
+        .device-dropdown {
+            background: #111; color: #ccc; border: 1px solid var(--border);
+            padding: 5px 10px; border-radius: 4px; font-size: 13px;
+            cursor: pointer; outline: none; width: 120px;
+        }
+
+        /* Sync Panel Drawer */
+        #sync-panel {
+            width: 0; position: fixed; left: 0; top: 50px; bottom: 0;
+            background: var(--panel-bg); border-right: 1px solid var(--border);
+            transition: 0.3s; z-index: 1000; overflow-x: hidden;
+        }
+        #sync-panel.open { width: 280px; padding: 20px; }
+
+        .btn-toggle { background: var(--border); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-main { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-danger { background: #ef444422; color: #ef4444; border: 1px solid #ef444444; padding: 8px; border-radius: 4px; cursor: pointer; width: 100%; margin-top: 10px; font-size: 12px; }
+
+        input { background: #111; border: 1px solid var(--border); color: white; padding: 8px; border-radius: 4px; font-size: 13px; }
+        #gjs { height: calc(100vh - 50px) !important; }
     </style>
 </head>
 <body>
 
-    <div class="toolbar">
-        <button class="drawer-toggle" onclick="document.getElementById('sync-drawer').classList.toggle('open')">☁️ Cloud Sync</button>
+    <header class="app-header">
+        <div class="header-left">
+            <button class="btn-toggle" onclick="toggleSync()">☁️ Cloud Sync</button>
+            <select class="device-dropdown" onchange="editor.setDevice(this.value)">
+                <option value="Desktop">Desktop View</option>
+                <option value="Tablet">Tablet View</option>
+                <option value="Mobile portrait">Mobile View</option>
+            </select>
+        </div>
+
+        <div class="header-right">
+            <input type="text" id="site-name" placeholder="Project Name" style="width:140px;">
+            <button class="btn-main" onclick="publishSite()">Publish</button>
+        </div>
+    </header>
+
+    <div id="sync-panel">
+        <h3 style="font-size:12px; color:#666; text-transform:uppercase;">Cloud Management</h3>
+        <button class="btn-main" style="width:100%" id="auth-btn" onclick="connectGitHub()">Connect GitHub</button>
         
-        <div class="device-view">
-            <button onclick="setDevice('Desktop')" title="Desktop">🖥️</button>
-            <button onclick="setDevice('Tablet')" title="Tablet">📱</button>
-            <button onclick="setDevice('Mobile portrait')" title="Mobile">📲</button>
-        </div>
-
-        <div style="display:flex; gap:10px; align-items:center;">
-            <input type="text" id="site-name" placeholder="Site Name" style="width:120px; margin:0; height:28px;">
-            <button class="btn-pub" onclick="publishSite()">Publish</button>
-        </div>
-    </div>
-
-    <div id="sync-drawer">
-        <h3>GitHub Sync</h3>
-        <button class="btn-pub" style="background:#444; width:100%;" id="auth-btn" onclick="connectGitHub()">Connect GitHub</button>
-        <div id="repo-controls" style="display:none; margin-top:15px;">
-            <select id="repo-list"><option>Loading...</option></select>
-            <button class="btn-pub" style="background:#3b82f6; width:100%;" onclick="importProject()">Open Project</button>
-            <button onclick="deleteCurrentProject()" style="color:#ef4444; background:none; border:none; margin-top:20px; cursor:pointer;">Delete Repository</button>
+        <div id="repo-ui" style="display:none; margin-top:15px;">
+            <select id="repo-list" style="width:100%; background:#111; color:white; border:1px solid #333; padding:8px; border-radius:4px; margin-bottom:10px;"></select>
+            <button class="btn-main" style="width:100%" onclick="importProject()">📂 Load Project</button>
+            
+            <div style="margin-top:30px; border-top:1px solid #333; padding-top:15px;">
+                <button class="btn-toggle" style="width:100%; margin-bottom:10px;" onclick="resetCanvas()">✨ Fresh Start (Clear All)</button>
+                <button class="btn-danger" onclick="deleteCurrentProject()">⚠️ Delete Repository</button>
+            </div>
         </div>
     </div>
 
@@ -71,11 +82,9 @@
     <script type="module">
         import { Octokit } from "https://cdn.skypack.dev/@octokit/rest";
 
-        // Firebase Setup
         const firebaseConfig = { apiKey: "AIzaSyBtcrbgIblZlg5mqGJPaGTFctCoTPrY-WQ", authDomain: "web-maker-c6261.firebaseapp.com", projectId: "web-maker-c6261" };
         firebase.initializeApp(firebaseConfig);
 
-        // 1. Initialize Editor with Custom PayPal Blocks
         const editor = grapesjs.init({
             container: '#gjs',
             height: '100%',
@@ -86,54 +95,21 @@
                     { name: 'Tablet', width: '768px', widthMedia: '992px' },
                     { name: 'Mobile portrait', width: '320px', widthMedia: '480px' }
                 ]
-            },
-            blockManager: {
-                blocks: [
-                    { id: 'section', label: 'Section', category: 'Layout', content: '<section style="padding:50px; min-height:150px;"><h2>New Section</h2></section>' },
-                    { id: 'text', label: 'Text', category: 'Basic', content: '<div>Edit this text</div>' },
-                    { id: 'image', label: 'Image', category: 'Basic', content: { type: 'image' } },
-                    { 
-                        id: 'paypal-item', 
-                        label: '<b>PayPal Product</b>', 
-                        category: 'Commerce', 
-                        content: { type: 'paypal-card' } 
-                    }
-                ]
             }
         });
 
-        // 2. Define the Custom PayPal Component (with Trait settings)
-        editor.DomComponents.addType('paypal-card', {
-            model: {
-                defaults: {
-                    attributes: { class: 'paypal-container', 'data-price': '10.00', 'data-item': 'My Product' },
-                    traits: [
-                        { type: 'text', label: 'Product Name', name: 'data-item' },
-                        { type: 'number', label: 'Price ($)', name: 'data-price' }
-                    ],
-                    components: `
-                        <div style="padding:20px; border:1px solid #ddd; border-radius:8px; background:#fff; color:#333; text-align:center; max-width:250px;">
-                            <img src="https://via.placeholder.com/150" style="width:100%; border-radius:4px;"/>
-                            <h3 class="p-name">My Product</h3>
-                            <p style="font-weight:bold;">$<span class="p-price">10.00</span></p>
-                            <div class="paypal-slot" style="background:#ffc439; padding:8px; border-radius:4px; font-weight:bold;">PayPal Button</div>
-                        </div>`
-                },
-                init() {
-                    this.on('change:attributes:data-item change:attributes:data-price', this.updateVisuals);
-                },
-                updateVisuals() {
-                    const attr = this.getAttributes();
-                    this.getEl().querySelector('.p-name').innerText = attr['data-item'];
-                    this.getEl().querySelector('.p-price').innerText = attr['data-price'];
-                }
+        // UI Functions
+        window.toggleSync = () => document.getElementById('sync-panel').classList.toggle('open');
+        
+        window.resetCanvas = () => {
+            if(confirm("Clear everything and start a new project?")) {
+                editor.DomComponents.clear();
+                editor.CssComposer.clear();
+                document.getElementById('site-name').value = '';
             }
-        });
+        };
 
-        // 3. Toolbar Functions
-        window.setDevice = (device) => editor.setDevice(device);
-
-        // 4. GitHub & Publishing Logic (Simplified & Integrated)
+        // GitHub Logic (Integrated)
         let githubToken = "", githubUser = "";
         window.connectGitHub = async () => {
             const provider = new firebase.auth.GithubAuthProvider();
@@ -142,7 +118,7 @@
             githubToken = result.credential.accessToken;
             githubUser = result.additionalUserInfo.username;
             document.getElementById('auth-btn').style.display = 'none';
-            document.getElementById('repo-controls').style.display = 'block';
+            document.getElementById('repo-ui').style.display = 'block';
             fetchRepos();
         };
 
@@ -152,31 +128,30 @@
             document.getElementById('repo-list').innerHTML = repos.data.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
         }
 
+        window.importProject = async () => {
+            const repo = document.getElementById('repo-list').value;
+            const octo = new Octokit({ auth: githubToken });
+            try {
+                const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: 'project-data.json' });
+                editor.loadProjectData(JSON.parse(atob(res.data.content)));
+                document.getElementById('site-name').value = repo;
+                toggleSync();
+            } catch(e) {
+                alert("Could not find project data in this repo.");
+            }
+        };
+
         window.publishSite = async () => {
             const name = document.getElementById('site-name').value;
-            if(!name || !githubToken) return alert("Connect GitHub & Enter Name!");
+            if(!name || !githubToken) return alert("Missing info!");
             const octo = new Octokit({ auth: githubToken });
-            
-            const html = `<!DOCTYPE html><html><head><style>${editor.getCss()}</style>
-                <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD"><\/script></head>
-                <body>${editor.getHtml()}
-                <script>
-                    document.querySelectorAll('.paypal-container').forEach(el => {
-                        const price = el.getAttribute('data-price');
-                        const item = el.getAttribute('data-item');
-                        const slot = el.querySelector('.paypal-slot');
-                        slot.innerHTML = '';
-                        paypal.Buttons({
-                            createOrder: (d, a) => a.order.create({ purchase_units: [{ description: item, amount: { value: price } }] })
-                        }).render(slot);
-                    });
-                <\/script></body></html>`;
+            const html = `<!DOCTYPE html><html><head><style>${editor.getCss()}</style></head><body>${editor.getHtml()}</body></html>`;
 
             try {
                 try { await octo.request('POST /user/repos', { name: name, auto_init: true }); } catch (e) {}
                 await uploadFile(octo, name, 'project-data.json', JSON.stringify(editor.getProjectData()));
                 await uploadFile(octo, name, 'index.html', html);
-                alert("Published Successfully!");
+                alert("Site Published!");
             } catch(e) { alert(e.message); }
         };
 
@@ -186,12 +161,12 @@
             return octo.repos.createOrUpdateFileContents({ owner: githubUser, repo: repo, path: path, message: 'Sync', content: btoa(unescape(encodeURIComponent(content))), sha });
         }
 
-        window.importProject = async () => {
-            const repo = document.getElementById('repo-list').value;
+        window.deleteCurrentProject = async () => {
+            const repo = document.getElementById('site-name').value;
+            if(!repo || !confirm("Delete repo forever?")) return;
             const octo = new Octokit({ auth: githubToken });
-            const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: 'project-data.json' });
-            editor.loadProjectData(JSON.parse(atob(res.data.content)));
-            document.getElementById('site-name').value = repo;
+            await octo.repos.delete({ owner: githubUser, repo: repo });
+            location.reload();
         };
     </script>
 </body>
