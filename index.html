@@ -1,178 +1,182 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>OpenBuilder | Pro Suite</title>
+    <title>OpenBuilder | Integrated Suite</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
     <style>
-        body, html { height: 100%; margin: 0; font-family: 'Inter', sans-serif; background: #111; color: white; overflow: hidden; }
-        .app-header { padding: 10px 20px; background: #1a1a1a; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; height: 55px; }
-        .main-container { display: flex; height: calc(100vh - 55px); }
+        body, html { height: 100%; margin: 0; font-family: 'Inter', sans-serif; background: #222; color: white; overflow: hidden; }
         
-        /* Sidebar Styles */
-        .sidebar { width: 320px; background: #1a1a1a; border-right: 1px solid #333; display: flex; flex-direction: column; overflow-y: auto; padding: 20px; gap: 15px; }
-        .sidebar-section { border-bottom: 1px solid #333; padding-bottom: 15px; }
-        .sidebar h3 { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; cursor: pointer; display: flex; justify-content: space-between; }
-        
-        /* Collapsible Logic */
-        .collapsible-content { display: none; margin-top: 10px; }
-        .collapsible-content.active { display: block; }
-        .arrow { transition: transform 0.2s; }
-        .active-arrow { transform: rotate(90deg); }
+        /* Top Toolbar */
+        .toolbar { 
+            height: 45px; background: #1a1a1a; display: flex; 
+            justify-content: space-between; align-items: center; 
+            padding: 0 15px; border-bottom: 1px solid #333; 
+        }
+        .device-view { display: flex; gap: 15px; }
+        .device-view button { background: none; border: none; color: #888; cursor: pointer; font-size: 18px; transition: 0.2s; }
+        .device-view button:hover, .device-view button.active { color: #3b82f6; }
 
-        input, select { background: #2a2a2a; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; font-size: 13px; margin-bottom: 10px; }
+        /* Sync Drawer */
+        #sync-drawer {
+            position: fixed; left: -300px; top: 45px; bottom: 0; width: 300px;
+            background: #1a1a1a; border-right: 1px solid #333; z-index: 100;
+            transition: 0.3s; padding: 20px; box-sizing: border-box;
+        }
+        #sync-drawer.open { left: 0; }
         
-        .btn { width: 100%; padding: 12px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 13px; }
-        .btn-save { background: #22c55e; color: white; width: auto !important; }
-        .btn-blue { background: #3b82f6; color: white; }
-        .btn-outline { background: transparent; border: 1px solid #444; color: #ccc; }
-        .btn-delete { color: #ef4444; background: none; font-size: 11px; margin-top: 10px; }
+        .drawer-toggle { 
+            background: #333; color: #ccc; border: none; padding: 5px 10px; 
+            border-radius: 4px; cursor: pointer; font-size: 12px;
+        }
 
-        #gjs { flex-grow: 1; }
-        #popup-toast { display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #f59e0b; color: #000; padding: 15px; border-radius: 8px; z-index: 3000; font-weight: bold; }
+        input, select { background: #2a2a2a; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; width: 100%; margin-bottom: 10px; }
+        .btn-pub { background: #22c55e; color: white; border: none; padding: 6px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+        #gjs { height: calc(100vh - 45px) !important; }
     </style>
 </head>
 <body>
 
-    <div id="popup-toast">⚠️ <b>Pop-up Blocked?</b> Please allow pop-ups for GitHub login.</div>
-
-    <header class="app-header">
-        <div class="logo"><b>OpenBuilder</b></div>
-        <div style="display:flex; gap:10px;">
-            <input type="text" id="site-name" placeholder="Project Name" style="width:180px; margin:0;">
-            <button class="btn btn-save" onclick="publishSite()">🚀 Save & Publish</button>
+    <div class="toolbar">
+        <button class="drawer-toggle" onclick="document.getElementById('sync-drawer').classList.toggle('open')">☁️ Cloud Sync</button>
+        
+        <div class="device-view">
+            <button onclick="setDevice('Desktop')" title="Desktop">🖥️</button>
+            <button onclick="setDevice('Tablet')" title="Tablet">📱</button>
+            <button onclick="setDevice('Mobile portrait')" title="Mobile">📲</button>
         </div>
-    </header>
 
-    <div class="main-container">
-        <div class="sidebar">
-            
-            <div class="sidebar-section">
-                <h3 onclick="toggleSection('cloud-tools', 'arr1')">Cloud Sync <span id="arr1" class="arrow">▶</span></h3>
-                <div id="cloud-tools" class="collapsible-content">
-                    <select id="repo-list"><option>Connect to see projects</option></select>
-                    <button class="btn btn-outline" id="auth-btn" onclick="connectGitHub()">🔑 Connect GitHub</button>
-                    <button class="btn btn-outline" id="load-btn" onclick="importProject()" style="display:none;">📂 Open Selected</button>
-                    <button class="btn btn-delete" onclick="deleteCurrentProject()">Delete Repo</button>
-                </div>
-            </div>
-
-            <div class="sidebar-section">
-                <h3 onclick="toggleSection('store-tools', 'arr2')">Store Settings <span id="arr2" class="arrow">▶</span></h3>
-                <div id="store-tools" class="collapsible-content active">
-                    <input type="password" id="paypal-id" placeholder="PayPal Client ID">
-                    <input type="color" id="global-color" value="#3b82f6" onchange="updateBrandColor(this.value)">
-                </div>
-            </div>
-
-            <div class="sidebar-section">
-                <h3>Product Creator</h3>
-                <input type="text" id="p-name" placeholder="Item Name">
-                <input type="number" id="p-price" placeholder="Price">
-                
-                <label style="font-size:11px; color:#888;">Product Image</label>
-                <input type="file" id="p-file" accept="image/*" style="padding:5px;">
-                <input type="text" id="p-img" placeholder="Or Image URL">
-                
-                <button class="btn btn-blue" onclick="addNewProduct()">Add to Canvas</button>
-            </div>
-
+        <div style="display:flex; gap:10px; align-items:center;">
+            <input type="text" id="site-name" placeholder="Site Name" style="width:120px; margin:0; height:28px;">
+            <button class="btn-pub" onclick="publishSite()">Publish</button>
         </div>
-        <div id="gjs"></div>
     </div>
+
+    <div id="sync-drawer">
+        <h3>GitHub Sync</h3>
+        <button class="btn-pub" style="background:#444; width:100%;" id="auth-btn" onclick="connectGitHub()">Connect GitHub</button>
+        <div id="repo-controls" style="display:none; margin-top:15px;">
+            <select id="repo-list"><option>Loading...</option></select>
+            <button class="btn-pub" style="background:#3b82f6; width:100%;" onclick="importProject()">Open Project</button>
+            <button onclick="deleteCurrentProject()" style="color:#ef4444; background:none; border:none; margin-top:20px; cursor:pointer;">Delete Repository</button>
+        </div>
+    </div>
+
+    <div id="gjs"></div>
 
     <script type="module">
         import { Octokit } from "https://cdn.skypack.dev/@octokit/rest";
 
+        // Firebase Setup
         const firebaseConfig = { apiKey: "AIzaSyBtcrbgIblZlg5mqGJPaGTFctCoTPrY-WQ", authDomain: "web-maker-c6261.firebaseapp.com", projectId: "web-maker-c6261" };
         firebase.initializeApp(firebaseConfig);
 
-        const editor = grapesjs.init({ container: '#gjs', height: '100%', storageManager: false });
-        
-        // --- UI HELPERS ---
-        window.toggleSection = (id, arrowId) => {
-            const content = document.getElementById(id);
-            const arrow = document.getElementById(arrowId);
-            content.classList.toggle('active');
-            arrow.classList.toggle('active-arrow');
-        };
-
-        // --- IMAGE UPLOAD LOGIC ---
-        async function uploadImage(file) {
-            const formData = new FormData();
-            formData.append('image', file);
-            // Using a free ImgBB API Key (publicly available demo key)
-            const response = await fetch('https://api.imgbb.com/1/upload?key=67015b3e214d0f735d4f3e7920f01e7e', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-            return data.data.url;
-        }
-
-        window.addNewProduct = async () => {
-            const btn = event.target;
-            btn.innerText = "Uploading...";
-            btn.disabled = true;
-
-            const name = document.getElementById('p-name').value;
-            const price = document.getElementById('p-price').value;
-            const color = document.getElementById('global-color').value;
-            let imgUrl = document.getElementById('p-img').value;
-            const fileInput = document.getElementById('p-file');
-
-            if (fileInput.files[0]) {
-                try { imgUrl = await uploadImage(fileInput.files[0]); } catch(e) { alert("Upload failed"); }
+        // 1. Initialize Editor with Custom PayPal Blocks
+        const editor = grapesjs.init({
+            container: '#gjs',
+            height: '100%',
+            storageManager: false,
+            deviceManager: {
+                devices: [
+                    { name: 'Desktop', width: '' },
+                    { name: 'Tablet', width: '768px', widthMedia: '992px' },
+                    { name: 'Mobile portrait', width: '320px', widthMedia: '480px' }
+                ]
+            },
+            blockManager: {
+                blocks: [
+                    { id: 'section', label: 'Section', category: 'Layout', content: '<section style="padding:50px; min-height:150px;"><h2>New Section</h2></section>' },
+                    { id: 'text', label: 'Text', category: 'Basic', content: '<div>Edit this text</div>' },
+                    { id: 'image', label: 'Image', category: 'Basic', content: { type: 'image' } },
+                    { 
+                        id: 'paypal-item', 
+                        label: '<b>PayPal Product</b>', 
+                        category: 'Commerce', 
+                        content: { type: 'paypal-card' } 
+                    }
+                ]
             }
+        });
 
-            if(!imgUrl) imgUrl = 'https://via.placeholder.com/300';
+        // 2. Define the Custom PayPal Component (with Trait settings)
+        editor.DomComponents.addType('paypal-card', {
+            model: {
+                defaults: {
+                    attributes: { class: 'paypal-container', 'data-price': '10.00', 'data-item': 'My Product' },
+                    traits: [
+                        { type: 'text', label: 'Product Name', name: 'data-item' },
+                        { type: 'number', label: 'Price ($)', name: 'data-price' }
+                    ],
+                    components: `
+                        <div style="padding:20px; border:1px solid #ddd; border-radius:8px; background:#fff; color:#333; text-align:center; max-width:250px;">
+                            <img src="https://via.placeholder.com/150" style="width:100%; border-radius:4px;"/>
+                            <h3 class="p-name">My Product</h3>
+                            <p style="font-weight:bold;">$<span class="p-price">10.00</span></p>
+                            <div class="paypal-slot" style="background:#ffc439; padding:8px; border-radius:4px; font-weight:bold;">PayPal Button</div>
+                        </div>`
+                },
+                init() {
+                    this.on('change:attributes:data-item change:attributes:data-price', this.updateVisuals);
+                },
+                updateVisuals() {
+                    const attr = this.getAttributes();
+                    this.getEl().querySelector('.p-name').innerText = attr['data-item'];
+                    this.getEl().querySelector('.p-price').innerText = attr['data-price'];
+                }
+            }
+        });
 
-            editor.addComponents(`<div class="product-card paypal-container" data-item="${name}" data-price="${price}" style="max-width:300px; margin:20px auto; background:white; color:#111; border-radius:12px; overflow:hidden; box-shadow:0 10px 25px rgba(0,0,0,0.1); font-family:sans-serif;"><img src="${imgUrl}" style="width:100%; height:200px; object-fit:cover;"/><div style="padding:20px; text-align:center;"><h3 style="margin:0;">${name}</h3><p style="font-weight:bold; color:${color}; font-size:1.3rem; margin:10px 0;">$${price}</p><div class="paypal-slot" style="background:${color}; color:white; padding:12px; border-radius:6px; font-weight:bold;">Checkout</div></div></div>`);
-            
-            btn.innerText = "Add to Canvas";
-            btn.disabled = false;
-        };
+        // 3. Toolbar Functions
+        window.setDevice = (device) => editor.setDevice(device);
 
-        // --- GITHUB & SYNC LOGIC ---
+        // 4. GitHub & Publishing Logic (Simplified & Integrated)
         let githubToken = "", githubUser = "";
         window.connectGitHub = async () => {
             const provider = new firebase.auth.GithubAuthProvider();
             provider.addScope('repo').addScope('delete_repo');
-            try {
-                const result = await firebase.auth().signInWithPopup(provider);
-                githubToken = result.credential.accessToken;
-                githubUser = result.additionalUserInfo.username;
-                document.getElementById('auth-btn').style.display = 'none';
-                document.getElementById('load-btn').style.display = 'block';
-                fetchRepos();
-            } catch (e) { alert("Popup blocked or login failed."); }
+            const result = await firebase.auth().signInWithPopup(provider);
+            githubToken = result.credential.accessToken;
+            githubUser = result.additionalUserInfo.username;
+            document.getElementById('auth-btn').style.display = 'none';
+            document.getElementById('repo-controls').style.display = 'block';
+            fetchRepos();
         };
 
         async function fetchRepos() {
             const octo = new Octokit({ auth: githubToken });
-            const repos = await octo.repos.listForAuthenticatedUser({ sort: 'updated', per_page: 50 });
+            const repos = await octo.repos.listForAuthenticatedUser({ sort: 'updated' });
             document.getElementById('repo-list').innerHTML = repos.data.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
         }
 
         window.publishSite = async () => {
             const name = document.getElementById('site-name').value;
-            const ppId = document.getElementById('paypal-id').value || 'sb';
-            if(!name || !githubToken) return alert("Setup name/GitHub first!");
-
+            if(!name || !githubToken) return alert("Connect GitHub & Enter Name!");
             const octo = new Octokit({ auth: githubToken });
-            const secretKey = btoa(ppId);
-            const ghost = `(function(){const _k=atob("${secretKey}");const s=document.createElement('script');s.src="https://www.paypal.com/sdk/js?client-id="+_k+"&currency=USD";s.onload=()=>{document.querySelectorAll('.paypal-container').forEach(el=>{const p=el.getAttribute('data-price'),i=el.getAttribute('data-item'),slot=el.querySelector('.paypal-slot');if(!slot)return;slot.innerHTML='';paypal.Buttons({createOrder:(data,actions)=>actions.order.create({purchase_units:[{description:i,amount:{value:p}}]})}).render(slot);});};document.head.appendChild(s);})();`;
-            const html = `<!DOCTYPE html><html><head><style>${editor.getCss()}</style></head><body>${editor.getHtml()}<script>${ghost}<\/script></body></html>`;
+            
+            const html = `<!DOCTYPE html><html><head><style>${editor.getCss()}</style>
+                <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD"><\/script></head>
+                <body>${editor.getHtml()}
+                <script>
+                    document.querySelectorAll('.paypal-container').forEach(el => {
+                        const price = el.getAttribute('data-price');
+                        const item = el.getAttribute('data-item');
+                        const slot = el.querySelector('.paypal-slot');
+                        slot.innerHTML = '';
+                        paypal.Buttons({
+                            createOrder: (d, a) => a.order.create({ purchase_units: [{ description: item, amount: { value: price } }] })
+                        }).render(slot);
+                    });
+                <\/script></body></html>`;
 
             try {
                 try { await octo.request('POST /user/repos', { name: name, auto_init: true }); } catch (e) {}
                 await uploadFile(octo, name, 'project-data.json', JSON.stringify(editor.getProjectData()));
                 await uploadFile(octo, name, 'index.html', html);
-                await octo.request('POST /repos/{owner}/{repo}/pages', { owner: githubUser, repo: name, source: { branch: 'main', path: '/' } }).catch(e=>{});
-                alert("Site Published!");
+                alert("Published Successfully!");
             } catch(e) { alert(e.message); }
         };
 
@@ -181,27 +185,13 @@
             try { const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: path }); sha = res.data.sha; } catch (e) {}
             return octo.repos.createOrUpdateFileContents({ owner: githubUser, repo: repo, path: path, message: 'Sync', content: btoa(unescape(encodeURIComponent(content))), sha });
         }
-        
+
         window.importProject = async () => {
             const repo = document.getElementById('repo-list').value;
             const octo = new Octokit({ auth: githubToken });
-            try {
-                const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: 'project-data.json' });
-                editor.loadProjectData(JSON.parse(atob(res.data.content)));
-                document.getElementById('site-name').value = repo;
-            } catch(e) { alert("No project data found."); }
-        };
-
-        window.deleteCurrentProject = async () => {
-            const repo = document.getElementById('site-name').value;
-            if(!repo || !confirm("Delete " + repo + "?")) return;
-            const octo = new Octokit({ auth: githubToken });
-            await octo.repos.delete({ owner: githubUser, repo: repo });
-            location.reload();
-        };
-
-        window.updateBrandColor = (c) => {
-            editor.DomComponents.getWrapper().find('.paypal-slot').forEach(s => s.addStyle({ background: c }));
+            const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: 'project-data.json' });
+            editor.loadProjectData(JSON.parse(atob(res.data.content)));
+            document.getElementById('site-name').value = repo;
         };
     </script>
 </body>
