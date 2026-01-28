@@ -1,64 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>OpenBuilder | Sign In & Publish</title>
+    <title>OpenBuilder | Final Integration</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
     <style>
         body, html { height: 100%; margin: 0; font-family: -apple-system, sans-serif; overflow: hidden; }
-        .panel__top { 
-            padding: 10px 20px; 
-            background: #1e1e1e; 
-            color: white; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            border-bottom: 1px solid #333;
-        }
+        .panel__top { padding: 10px 20px; background: #1e1e1e; color: white; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; }
         .btns-right { display: flex; gap: 10px; align-items: center; }
-        #site-name {
-            background: #333;
-            border: 1px solid #444;
-            color: white;
-            padding: 8px;
-            border-radius: 4px;
-            outline: none;
-            width: 200px;
-        }
-        button {
-            padding: 8px 16px;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            transition: 0.2s;
-        }
+        #site-name { background: #333; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; outline: none; width: 200px; }
+        button { padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; font-weight: 600; transition: 0.2s; }
         .btn-download { background: #444; color: white; }
         .btn-github { background: #2ea44f; color: white; }
-        .btn-github:hover { background: #2c974b; transform: translateY(-1px); }
         #gjs { height: calc(100vh - 56px) !important; }
-        #loader {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            z-index: 1000;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
+        #loader { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); color: white; z-index: 1000; flex-direction: column; justify-content: center; align-items: center; }
     </style>
 </head>
 <body>
 
     <div id="loader">
-        <h1 id="loader-title">Publishing to GitHub...</h1>
-        <p id="loader-status">Authenticating...</p>
+        <h1 id="loader-title">Pushing to GitHub...</h1>
+        <p id="loader-status">Preparing...</p>
     </div>
 
     <div class="panel__top">
@@ -67,33 +32,32 @@
             <input type="text" id="site-name" placeholder="Website Name (No spaces)">
             <button class="btn-download" onclick="downloadSite()">Download HTML</button>
             <button class="btn-github" onclick="loginAndPublish()">🚀 Sign in & Push</button>
-            <button style="background:transparent; color:#888; font-size:12px;" onclick="firebase.auth().signOut().then(() => alert('Signed out!'))">Sign Out</button>
+            <button style="background:transparent; color:#888; font-size:11px;" onclick="firebase.auth().signOut().then(() => alert('Signed Out. Now refresh and try again.'))">Sign Out</button>
         </div>
     </div>
 
     <div id="gjs">
         <section style="padding: 100px 50px; text-align: center; background-color: #f9f9f9;">
-            <h1>Instant E-Commerce Site</h1>
-            <p>Edit this text, drag an image, or add a PayPal button below.</p>
+            <h1>Your Instant Store</h1>
+            <p>Edit this text, then click "Sign in & Push".</p>
         </section>
     </div>
 
     <script type="module">
         import { Octokit } from "https://cdn.skypack.dev/@octokit/rest";
 
-        // Initialize Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBtcrbgIblZlg5mqGJPaGTFctCoTPrY-WQ",
             authDomain: "web-maker-c6261.firebaseapp.com",
             projectId: "web-maker-c6261"
         };
+        
         firebase.initializeApp(firebaseConfig);
-
-        // Setup GitHub Provider for OAuth
         const provider = new firebase.auth.GithubAuthProvider();
-        provider.addScope('repo'); // Crucial: Asks for repository write access
+        
+        // This is the "Magic Line" that requests the correct permissions
+        provider.addScope('repo'); 
 
-        // Initialize GrapesJS
         const editor = grapesjs.init({
             container: '#gjs',
             fromElement: true,
@@ -102,14 +66,8 @@
             blockManager: {
                 blocks: [
                     { id: 'section', label: 'Section', content: '<section style="padding:50px; text-align:center;"><h2>New Section</h2></section>' },
-                    { id: 'text', label: 'Text', content: '<p>Insert your text here...</p>' },
-                    { id: 'image', label: 'Image', content: { type: 'image' } },
-                    { id: 'paypal', label: '<b>PayPal Button</b>', content: `
-                        <div style="padding: 20px; text-align: center; border: 2px solid #ffc439; border-radius: 8px;">
-                            <div id="paypal-button-container"></div>
-                            <p style="font-size:12px; color:#666;">(Button will activate after publish)</p>
-                        </div>` 
-                    }
+                    { id: 'text', label: 'Text', content: '<p>Edit your text...</p>' },
+                    { id: 'image', label: 'Image', content: { type: 'image' } }
                 ]
             }
         });
@@ -117,65 +75,48 @@
         window.loginAndPublish = async function() {
             const siteName = document.getElementById('site-name').value.trim().replace(/\s+/g, '-').toLowerCase();
             const statusText = document.getElementById('loader-status');
-            
-            if (!siteName) return alert("Please enter a name for your website.");
+            if (!siteName) return alert("Please enter a name!");
 
             try {
-                // 1. Authenticate
+                // 1. Authenticate with GitHub
                 const result = await firebase.auth().signInWithPopup(provider);
                 const token = result.credential.accessToken;
                 const githubUser = result.additionalUserInfo.username;
 
                 document.getElementById('loader').style.display = 'flex';
-                statusText.innerText = "Connecting to GitHub...";
+                statusText.innerText = "Checking permissions...";
 
                 const octokit = new Octokit({ auth: token });
 
+                // Verify the token has repo access
+                const checkAuth = await fetch(`https://api.github.com/zen`, {
+                    headers: { 'Authorization': `token ${token}` }
+                });
+                const scopes = checkAuth.headers.get('x-oauth-scopes') || "";
+                
+                if (!scopes.includes('repo')) {
+                    throw new Error("Missing 'repo' permission. Did you check the box on the GitHub popup?");
+                }
+
                 // 2. Create the Repo
                 statusText.innerText = "Creating repository...";
-                await octokit.request('POST /user/repos', {
-                    name: siteName,
-                    auto_init: true,
-                    description: "Created with OpenBuilder"
-                });
+                await octokit.request('POST /user/repos', { name: siteName, auto_init: true });
 
-                // Small delay to let GitHub catch up
-                await new Promise(r => setTimeout(r, 2000));
+                // 3. Upload File
+                await new Promise(r => setTimeout(r, 2500)); // Wait for GitHub to wake up
+                statusText.innerText = "Uploading files...";
+                const finalCode = `<!DOCTYPE html><html><style>${editor.getCss()}</style><body>${editor.getHtml()}</body></html>`;
 
-                // 3. Prepare Code
-                statusText.innerText = "Uploading website files...";
-                const html = editor.getHtml();
-                const css = editor.getCss();
-                const finalCode = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>${siteName}</title>
-                    <style>${css}</style>
-                    <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD"><\/script>
-                </head>
-                <body>
-                    ${html}
-                    <script>
-                        if(document.getElementById('paypal-button-container')) {
-                            paypal.Buttons().render('#paypal-button-container');
-                        }
-                    <\/script>
-                </body>
-                </html>`;
-
-                // 4. Upload index.html
                 await octokit.repos.createOrUpdateFileContents({
                     owner: githubUser,
                     repo: siteName,
                     path: 'index.html',
-                    message: 'Deploy from OpenBuilder',
+                    message: 'Initial deploy',
                     content: btoa(unescape(encodeURIComponent(finalCode)))
                 });
 
-                // 5. Enable GitHub Pages
-                statusText.innerText = "Activating live URL...";
+                // 4. Enable Pages
+                statusText.innerText = "Making your site live...";
                 await octokit.request('POST /repos/{owner}/{repo}/pages', {
                     owner: githubUser,
                     repo: siteName,
@@ -183,19 +124,16 @@
                 });
 
                 document.getElementById('loader').style.display = 'none';
-                alert(`🚀 SUCCESS! Your site is live at: https://${githubUser}.github.io/${siteName}/`);
+                alert(`🚀 SUCCESS! Site live at: https://${githubUser}.github.io/${siteName}/`);
 
             } catch (error) {
                 document.getElementById('loader').style.display = 'none';
-                console.error(error);
-                alert("Error: " + (error.message || "Something went wrong. Check console."));
+                alert("Error: " + error.message);
             }
         };
 
         window.downloadSite = function() {
-            const html = editor.getHtml();
-            const css = editor.getCss();
-            const blob = new Blob([`<html><style>${css}</style><body>${html}</body></html>`], {type: "text/html"});
+            const blob = new Blob([`<html><style>${editor.getCss()}</style><body>${editor.getHtml()}</body></html>`], {type: "text/html"});
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
             a.download = "index.html";
