@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>OpenBuilder | Absolute Freedom</title>
+    <title>OpenBuilder | Final Suite</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
@@ -10,48 +10,70 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
     <style>
-        :root { --blue: #3b82f6; --dark: #000; --panel: #111; --border: #444; }
-        body, html { height: 100%; margin: 0; overflow: hidden; background: var(--dark); font-family: sans-serif; }
+        :root { --blue: #3b82f6; --dark: #000; --panel: #111; --border: #333; }
+        body, html { height: 100%; margin: 0; overflow: hidden; background: var(--dark); font-family: sans-serif; color: #fff; }
 
-        /* HIGH-VISIBILITY INPUTS */
+        /* HIGH-CONTRAST UI FIX */
+        .gjs-one-bg { background-color: var(--dark) !important; }
+        .gjs-two-bg { background-color: var(--panel) !important; }
+        .gjs-three-bg { background-color: #222 !important; }
         input, select, textarea, .gjs-field, .gjs-sm-field { 
-            background-color: #222 !important; 
-            color: #fff !important; 
-            border: 1px solid var(--border) !important;
-            padding: 10px !important;
+            background-color: #252525 !important; color: #fff !important; border: 1px solid var(--border) !important;
+            padding: 8px !important;
         }
 
+        /* Top Bar Layout */
         #top-bar {
-            height: 55px; background: var(--panel); border-bottom: 1px solid #333;
-            display: flex; align-items: center; padding: 0 15px; gap: 15px;
+            height: 55px; background: var(--panel); border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; padding: 0 15px; gap: 20px;
         }
 
+        /* Device Switcher */
+        .device-toggle {
+            display: flex; background: #000; border: 1px solid var(--border); border-radius: 6px; padding: 2px;
+        }
+        .device-btn {
+            padding: 6px 12px; border: none; background: none; color: #555; cursor: pointer; border-radius: 4px; transition: 0.2s;
+        }
+        .device-btn.active { background: #222; color: var(--blue); }
+
+        /* Page Tabs */
+        #tab-list { display: flex; gap: 5px; }
+        .tab-btn { padding: 6px 12px; background: #1a1a1a; color: #666; border: 1px solid #333; border-radius: 4px; cursor: pointer; font-size: 11px; }
+        .tab-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+        /* Deployment Section */
         #deploy-section { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+        .repo-input { background: #000; border: 1px solid var(--blue); color: #fff; padding: 8px; border-radius: 4px; width: 160px; font-size: 12px; }
 
-        #status {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: var(--blue); color: white; padding: 10px 25px;
-            border-radius: 5px; font-weight: bold; z-index: 10000; display: none;
+        #status-toast {
+            position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%);
+            background: var(--blue); color: white; padding: 15px 30px;
+            border-radius: 6px; font-weight: bold; z-index: 10000; display: none; text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
         }
-
-        /* Tabs styling */
-        .tab-btn { padding: 8px 15px; background: #222; color: #888; border-radius: 4px; border: none; cursor: pointer; font-size: 12px; }
-        .tab-btn.active { background: var(--blue); color: #fff; }
+        #status-toast a { color: #fff; text-decoration: underline; font-size: 14px; }
     </style>
 </head>
 <body>
 
-    <div id="status">Ready</div>
+    <div id="status-toast">Ready</div>
 
     <div id="top-bar">
-        <b style="color:var(--blue); letter-spacing:1px;">OPENBUILDER PRO</b>
-        <div id="tab-list" style="display:flex; gap:5px;"></div>
-        <button onclick="addPage()" style="background:none; border:1px dashed #555; color:#555; cursor:pointer; padding:5px;">+ Page</button>
+        <b style="color:var(--blue); font-size: 12px; letter-spacing: 1.5px;">OPENBUILDER</b>
         
+        <div id="tab-list"></div>
+        <button onclick="addPage()" style="background:none; border:1px dashed #444; color:#444; cursor:pointer; font-size:18px; padding:0 10px; border-radius:4px;">+</button>
+
+        <div class="device-toggle">
+            <button class="device-btn active" id="btn-desktop" onclick="setDevice('Desktop')"><i class="fa fa-desktop"></i></button>
+            <button class="device-btn" id="btn-mobile" onclick="setDevice('Mobile')"><i class="fa fa-mobile-phone"></i></button>
+        </div>
+
         <div id="deploy-section">
-            <input type="text" id="repo-id" placeholder="Repository Name" style="width:200px; height:35px; border-color:var(--blue) !important;">
-            <button onclick="pushToGitHub()" style="background:var(--blue); color:white; border:none; padding:10px 20px; border-radius:4px; font-weight:bold; cursor:pointer;">PUSH LIVE</button>
-            <button onclick="importProject()" style="background:#333; color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer;">IMPORT</button>
+            <input type="text" id="repo-id" class="repo-input" placeholder="Repository Name">
+            <button onclick="pushToGitHub()" style="background:var(--blue); color:white; border:none; padding:8px 16px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px;">PUSH TO GITHUB</button>
+            <button onclick="importProject()" style="background:#222; color:#888; border:1px solid #333; padding:8px 12px; border-radius:4px; cursor:pointer; font-size:11px;">IMPORT</button>
         </div>
     </div>
 
@@ -68,49 +90,45 @@
             height: 'calc(100% - 55px)',
             storageManager: false,
             pageManager: true,
-            // DRAG MODE: This allows absolute moving like Microweber
-            dragMode: 'absolute', 
+            dragMode: 'absolute', // Free-roam dragging
+            deviceManager: {
+                devices: [
+                    { name: 'Desktop', width: '' },
+                    { name: 'Mobile', width: '320px', widthMedia: '480px' }
+                ]
+            },
             canvas: { styles: ['https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap'] },
             blockManager: {
                 blocks: [
-                    { 
-                        id: 'btn', label: 'Moveable Button', 
-                        content: { 
-                            tagName: 'a', content: 'CLICK ME', 
-                            style: { position: 'absolute', top: '100px', left: '100px', padding: '15px 30px', background: '#3b82f6', color: '#fff', 'text-decoration': 'none', 'border-radius': '8px', 'font-weight': 'bold' },
-                            traits: ['href']
-                        } 
-                    },
-                    { 
-                        id: 'txt', label: 'Moveable Text', 
-                        content: { type: 'text', content: 'Drag me anywhere', style: { position: 'absolute', top: '50px', left: '50px', color: '#fff', 'font-size': '24px' } } 
-                    },
-                    {
-                        id: 'img', label: 'Moveable Image',
-                        content: { type: 'image', style: { position: 'absolute', top: '150px', left: '150px', width: '200px' } }
-                    }
+                    { id: 'b', label: 'Button', content: { tagName: 'a', content: 'ACTION BUTTON', style: { position: 'absolute', top: '100px', left: '100px', padding: '12px 24px', background: '#3b82f6', color: '#fff', 'text-decoration': 'none', 'border-radius': '4px', 'font-weight': 'bold' }, traits: ['href'] } },
+                    { id: 't', label: 'Text', content: { type: 'text', content: 'Double click to edit text', style: { position: 'absolute', top: '50px', left: '50px', color: '#fff', 'font-size': '18px' } } },
+                    { id: 'i', label: 'Image', content: { type: 'image', style: { position: 'absolute', top: '150px', left: '150px', width: '250px' } } }
                 ]
             }
         });
 
         const pm = editor.Pages;
 
-        // Force Absolute Positioning on every drop
+        // Ensure every new item is absolute so it doesn't snap to corners
         editor.on('component:add', (model) => {
             const style = model.getStyle();
-            if (!style.position) {
-                model.setStyle({ ...style, position: 'absolute', top: '50px', left: '50px' });
-            }
+            model.setStyle({ ...style, position: 'absolute' });
         });
 
+        window.setDevice = (device) => {
+            editor.setDevice(device);
+            document.querySelectorAll('.device-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${device.toLowerCase()}`).classList.add('active');
+        };
+
         window.notify = (msg, stay = false) => {
-            const t = document.getElementById('status');
-            t.innerText = msg; t.style.display = 'block';
-            if(!stay) setTimeout(() => t.style.display = 'none', 4000);
+            const t = document.getElementById('status-toast');
+            t.innerHTML = msg; t.style.display = 'block';
+            if(!stay) setTimeout(() => t.style.display = 'none', 5000);
         };
 
         window.addPage = () => {
-            const name = prompt("Page Name:");
+            const name = prompt("Enter Page Name (e.g., about):");
             if(name) { pm.add({ id: name, component: '<div style="height:100vh; background:#000; position:relative;"></div>' }); updateTabs(); }
         };
 
@@ -120,7 +138,7 @@
             pm.getAll().forEach(p => {
                 const btn = document.createElement('button');
                 btn.className = `tab-btn ${p.id === pm.getSelected().id ? 'active' : ''}`;
-                btn.innerText = p.id;
+                btn.innerText = p.id + ".html";
                 btn.onclick = () => { pm.select(p.id); updateTabs(); };
                 list.appendChild(btn);
             });
@@ -130,10 +148,9 @@
 
         window.pushToGitHub = async () => {
             const repo = document.getElementById('repo-id').value;
-            if(!repo) return notify("⚠️ Enter Repository Name!");
+            if(!repo) return notify("⚠️ Enter a Repository Name first!");
 
-            notify("🛰️ GitHub Handshake...", true);
-
+            notify("🛰️ Authenticating...", true);
             if(!token) {
                 const provider = new firebase.auth.GithubAuthProvider();
                 provider.addScope('repo');
@@ -144,57 +161,49 @@
 
             const octo = new Octokit({ auth: token });
             try {
-                // Ensure Repository
+                // Create Repo if it doesn't exist
                 try { await octo.request('POST /user/repos', { name: repo, auto_init: true }); } catch(e){}
-
-                // 1. SAVE PROJECT DATA
+                
+                // 1. Sync Project JSON (Save Data)
                 await sync(octo, repo, 'project-data.json', JSON.stringify(editor.getProjectData()));
 
-                // 2. CONVERT EVERYTHING TO INDEX.HTML
-                // We bundle the current selected page as the main index.html
-                const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${editor.getCss()}</style></head><body>${editor.getHtml()}</body></html>`;
-                await sync(octo, repo, 'index.html', html);
-
-                // 3. ALSO SAVE OTHER PAGES if they exist
-                const allPages = pm.getAll();
-                for (const p of allPages) {
+                // 2. Sync HTML Pages
+                const pages = pm.getAll();
+                for (const p of pages) {
                     pm.select(p.id);
-                    const p_html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${editor.getCss()}</style></head><body>${editor.getHtml()}</body></html>`;
-                    await sync(octo, repo, `${p.id}.html`, p_html);
+                    // Critical Fix: Wrapped body in relative container to prevent left-shooting elements
+                    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${editor.getCss()}</style></head><body style="margin:0; position:relative; min-height:100vh; background:#000; overflow-x:hidden;">${editor.getHtml()}</body></html>`;
+                    
+                    // Force the first page in the list to be index.html
+                    const filename = (p.id === 'index' || pages.indexOf(p) === 0) ? 'index.html' : `${p.id}.html`;
+                    await sync(octo, repo, filename, html);
                 }
 
-                notify("🚀 Site Pushed! Checking live status...");
-                const url = `https://${user}.github.io/${repo}/`;
-                const check = setInterval(async () => {
-                    try {
-                        await fetch(url, { mode: 'no-cors' });
-                        clearInterval(check);
-                        notify("✅ LIVE!");
-                        window.open(url, '_blank');
-                    } catch(e) {}
-                }, 5000);
+                const repoUrl = `https://github.com/${user}/${repo}`;
+                notify(`✅ PUSHED TO GITHUB!<br><br><a href="${repoUrl}" target="_blank">View Repository</a><br><small>Go to Settings > Pages to go live</small>`, true);
 
             } catch(e) { notify("❌ Error: " + e.message); }
         };
 
         window.importProject = async () => {
             const repo = document.getElementById('repo-id').value;
-            if(!repo) return notify("⚠️ Enter Repo Name!");
+            if(!repo) return notify("⚠️ Enter Repo Name to Import.");
             notify("📥 Importing...", true);
+            if(!token) { /* Sign in logic as handled in push */ }
             const octo = new Octokit({ auth: token });
             try {
                 const res = await octo.repos.getContent({ owner: user, repo: repo, path: 'project-data.json' });
                 editor.loadProjectData(JSON.parse(atob(res.data.content)));
-                notify("✅ Import Success!");
+                notify("✅ Import Successful!");
                 updateTabs();
-            } catch(e) { notify("⚠️ No save data."); }
+            } catch(e) { notify("⚠️ No save data found in this repo."); }
         };
 
         async function sync(octo, repo, path, content) {
             let sha = null;
             try { const res = await octo.repos.getContent({ owner: user, repo: repo, path: path }); sha = res.data.sha; } catch(e) {}
             return octo.repos.createOrUpdateFileContents({
-                owner: user, repo: repo, path: path, message: 'OpenBuilder Sync',
+                owner: user, repo: repo, path: path, message: 'OpenBuilder Auto-Sync',
                 content: btoa(unescape(encodeURIComponent(content))), sha: sha
             });
         }
