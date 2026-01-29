@@ -2,98 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>OpenBuilder | Apex Edition</title>
+    <title>OpenBuilder Enterprise</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
     <style>
-        :root { --bg: #080808; --panel: #111; --border: #222; --accent: #0070f3; --text: #fafafa; }
-        body, html { height: 100%; margin: 0; font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
+        body, html { height: 100%; margin: 0; overflow: hidden; background: #111; }
         
-        /* Fixed Pro Header */
-        .app-header { 
-            height: 60px; background: var(--panel); display: flex; 
-            justify-content: space-between; align-items: center; 
-            padding: 0 25px; border-bottom: 1px solid var(--border); z-index: 1001;
+        /* Professional Dark Theme Overrides */
+        .gjs-one-bg { background-color: #0f0f0f !important; }
+        .gjs-two-bg { background-color: #1a1a1a !important; }
+        .gjs-three-bg { background-color: #222 !important; }
+        .gjs-four-color { color: #ffffff !important; }
+        .gjs-four-color-h:hover { color: #3b82f6 !important; }
+        .gjs-pn-buttons { background-color: #0f0f0f !important; border-bottom: 1px solid #222 !important; }
+        
+        /* Page Manager UI */
+        #page-manager-container {
+            position: absolute; top: 40px; left: 0; width: 200px; height: auto;
+            background: #1a1a1a; z-index: 100; border: 1px solid #333; display: none; padding: 10px;
         }
-
-        .btn { 
-            background: transparent; color: #fff; border: 1px solid var(--border);
-            padding: 10px 18px; border-radius: 5px; cursor: pointer; font-size: 11px;
-            font-weight: 700; text-transform: uppercase; letter-spacing: 1px; transition: 0.2s;
-        }
-        .btn:hover { background: #fff; color: #000; }
-        .btn-primary { background: var(--accent); border: none; }
-
-        /* Undo/Redo Group */
-        .history-group { display: flex; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
-        .btn-hist { background: var(--panel); border: none; color: #fff; padding: 10px 15px; cursor: pointer; font-size: 12px; }
-        .btn-hist:hover { background: #222; }
-
-        #sync-panel {
-            width: 0; position: fixed; left: 0; top: 60px; bottom: 0;
-            background: var(--panel); border-right: 1px solid var(--border);
-            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; overflow: hidden;
-        }
-        #sync-panel.open { width: 340px; padding: 30px; box-sizing: border-box; }
-
-        .device-selector {
-            background: #000; color: #fff; border: 1px solid var(--border);
-            padding: 8px 12px; border-radius: 5px; font-size: 11px; font-weight: bold; cursor: pointer;
-        }
-
-        #gjs { height: calc(100vh - 60px) !important; }
-        input, select { background: #000; border: 1px solid var(--border); color: white; padding: 12px; border-radius: 5px; width: 100%; margin-bottom: 15px; }
-        .label-cap { font-size: 10px; color: #555; text-transform: uppercase; margin-bottom: 8px; display: block; font-weight: bold; }
+        .page-item { padding: 8px; color: #ccc; cursor: pointer; border-bottom: 1px solid #333; font-size: 12px; }
+        .page-item:hover { background: #333; color: white; }
     </style>
 </head>
 <body>
 
-    <header class="app-header">
-        <div style="display:flex; gap:12px;">
-            <button class="btn" onclick="toggleSync()">Settings</button>
-            <div class="history-group">
-                <button class="btn-hist" title="Undo" onclick="editor.UndoManager.undo()">⟲</button>
-                <button class="btn-hist" title="Redo" onclick="editor.UndoManager.redo()">⟳</button>
-            </div>
-        </div>
-
-        <select id="device-view" class="device-selector">
-            <option value="Desktop">Desktop View</option>
-            <option value="Tablet">Tablet View</option>
-            <option value="Mobile portrait">Mobile View</option>
-        </select>
-
-        <div style="display:flex; gap:12px; align-items: center;">
-            <input type="text" id="site-name" placeholder="PROJECT_ID" style="width:140px; margin:0; height:36px;">
-            <button class="btn btn-primary" onclick="publishSite()">Publish Live</button>
-        </div>
-    </header>
-
-    <div id="sync-panel">
-        <span class="label-cap">Design System</span>
-        <label class="label-cap">Brand Accent</label>
-        <input type="color" id="global-color" value="#0070f3" onchange="applyGlobalStyles()">
-        
-        <label class="label-cap">Typography</label>
-        <select id="global-font" onchange="applyGlobalStyles()">
-            <option value="Inter, sans-serif">Modern Sans</option>
-            <option value="Georgia, serif">Classic Serif</option>
-        </select>
-
-        <div style="margin-top:40px; border-top: 1px solid var(--border); padding-top:20px;">
-            <span class="label-cap">Cloud Connectivity</span>
-            <button class="btn" style="width:100%; margin-bottom:15px;" id="auth-btn" onclick="connectGitHub()">Connect GitHub</button>
-            <div id="repo-ui" style="display:none;">
-                <select id="repo-list"></select>
-                <button class="btn btn-primary" style="width:100%" onclick="importProject()">Sync Project</button>
-            </div>
-            <button class="btn" style="width:100%; margin-top:15px;" onclick="exportToZip()">Download ZIP</button>
-            <button class="btn" style="width:100%; margin-top:20px; color:#ff4444; border-color:#331111;" onclick="resetCanvas()">Hard Reset</button>
-        </div>
+    <div id="page-manager-container">
+        <div style="font-size: 10px; color: #555; text-transform: uppercase; margin-bottom: 10px;">Page Manager</div>
+        <div id="page-list"></div>
+        <button onclick="addNewPage()" style="width: 100%; margin-top: 10px; background: #333; color: white; border: none; padding: 5px; cursor: pointer;">+ Add Page</button>
     </div>
 
     <div id="gjs"></div>
@@ -104,119 +46,142 @@
         const firebaseConfig = { apiKey: "AIzaSyBtcrbgIblZlg5mqGJPaGTFctCoTPrY-WQ", authDomain: "web-maker-c6261.firebaseapp.com", projectId: "web-maker-c6261" };
         firebase.initializeApp(firebaseConfig);
 
-        // Define editor globally before init
-        window.editor = grapesjs.init({
+        const editor = grapesjs.init({
             container: '#gjs',
             height: '100%',
             fromElement: true,
             storageManager: false,
             allowScripts: 1,
-            undoManager: { trackSelection: false },
+            pageManager: true, // Native Page Management enabled
             canvas: { styles: ['https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap'] },
             blockManager: {
                 blocks: [
-                    { 
-                        id: 'hero-pro', 
-                        label: 'Pro Hero Section', 
-                        category: 'Layout', 
-                        content: `<section style="padding:100px 20px; text-align:center; background:#000; color:#fff;">
-                                    <h1 style="font-size:48px;">Elevate Your Brand</h1>
-                                    <p style="font-size:18px; color:#888;">The future of commerce is here.</p>
-                                    <button style="background:#fff; color:#000; padding:15px 30px; border:none; border-radius:5px; font-weight:bold; margin-top:20px;">Shop Now</button>
-                                  </section>` 
+                    {
+                        id: 'section-pro', label: 'Section', category: 'Layout',
+                        content: `<section style="padding:100px 20px; display:flex; flex-direction:column; align-items:center; background:#000;">
+                                    <h1 style="color:#fff; font-size:40px;">New Headline</h1>
+                                    <p style="color:#888;">Design your future here.</p>
+                                  </section>`
                     },
-                    { 
-                        id: 'free-move-img', 
-                        label: 'Free Image', 
-                        category: 'Basic', 
-                        content: { type: 'image', style: { position: 'absolute', top: '10px', left: '10px', width: '250px', 'z-index': '10' } } 
+                    {
+                        id: 'free-move', label: 'Free Box', category: 'Advanced',
+                        content: {
+                            style: { position: 'absolute', top: '100px', left: '100px', padding: '30px', background: '#3b82f6', width: '200px', color: '#fff' },
+                            content: 'Drag me anywhere'
+                        }
                     },
-                    { 
-                        id: 'free-move-txt', 
-                        label: 'Free Text', 
-                        category: 'Basic', 
-                        content: '<div style="position:absolute; top:100px; left:100px; padding:10px; color:#fff; z-index:11;">Professional Text Overlay</div>' 
-                    },
-                    { 
-                        id: 'embed-box', 
-                        label: 'Custom Code', 
-                        category: 'Advanced', 
-                        content: { type: 'script', content: '<div style="padding:20px; border:1px solid #333; color:#666;">Custom HTML/JS Container</div>' } 
+                    {
+                        id: 'embed-pro', label: 'Embed Box', category: 'Advanced',
+                        content: {
+                            type: 'default',
+                            content: '<div style="padding:20px; border:2px dashed #444; text-align:center; color:#666;">Paste HTML/JS in Settings (Gear Icon)</div>',
+                            traits: [{ type: 'textarea', label: 'Custom Code', name: 'custom-code' }]
+                        }
                     }
                 ]
             }
         });
 
-        // Event Listener for Device Switch (fixes ReferenceError)
-        document.getElementById('device-view').addEventListener('change', (e) => {
-            window.editor.setDevice(e.target.value);
-        });
+        const pm = editor.Pages;
+        const pn = editor.Panels;
 
-        window.applyGlobalStyles = () => {
-            const color = document.getElementById('global-color').value;
-            const font = document.getElementById('global-font').value;
-            window.editor.CssComposer.addRules(`
-                body { font-family: ${font} !important; }
-                h1, h2, h3, .accent { color: ${color} !important; }
-            `);
+        // 1. ADD NATIVE BUTTONS TO HEADER
+        pn.addButton('options', [
+            {
+                id: 'pages-toggle', className: 'fa fa-file-code',
+                command: () => {
+                    const el = document.getElementById('page-manager-container');
+                    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+                    updatePageList();
+                },
+                attributes: { title: 'Manage Pages' }
+            },
+            { id: 'undo', className: 'fa fa-undo', command: e => e.UndoManager.undo() },
+            { id: 'redo', className: 'fa fa-repeat', command: e => e.UndoManager.redo() },
+            { id: 'export-zip', className: 'fa fa-download', command: () => exportToZip() },
+            { id: 'publish', className: 'fa fa-cloud-upload', command: () => publishToGithub() }
+        ]);
+
+        // 2. PAGE MANAGER LOGIC
+        window.addNewPage = () => {
+            const name = prompt("Page name (e.g., about, contact):");
+            if (name) {
+                pm.add({ id: name, component: `<section style="padding:100px; text-align:center;"><h1>Welcome to ${name}</h1></section>` });
+                updatePageList();
+            }
         };
 
-        window.toggleSync = () => document.getElementById('sync-panel').classList.toggle('open');
-        window.resetCanvas = () => confirm("Wipe everything?") && window.editor.DomComponents.clear();
+        const updatePageList = () => {
+            const list = document.getElementById('page-list');
+            list.innerHTML = '';
+            pm.getAll().forEach(page => {
+                const div = document.createElement('div');
+                div.className = 'page-item';
+                div.innerHTML = `${page.get('id')} ${page.get('id') === pm.getSelected().get('id') ? '<b>(active)</b>' : ''}`;
+                div.onclick = () => {
+                    pm.select(page.get('id'));
+                    updatePageList();
+                };
+                list.appendChild(div);
+            });
+        };
 
-        // GitHub / Publish Logic
+        // 3. GITHUB & CLOUD LOGIC
         let githubToken = "", githubUser = "";
-        window.connectGitHub = async () => {
-            const provider = new firebase.auth.GithubAuthProvider();
-            provider.addScope('repo');
-            const result = await firebase.auth().signInWithPopup(provider);
-            githubToken = result.credential.accessToken;
-            githubUser = result.additionalUserInfo.username;
-            document.getElementById('auth-btn').style.display = 'none';
-            document.getElementById('repo-ui').style.display = 'block';
-            fetchRepos();
-        };
-
-        async function fetchRepos() {
+        const publishToGithub = async () => {
+            if (!githubToken) {
+                const provider = new firebase.auth.GithubAuthProvider();
+                provider.addScope('repo');
+                const result = await firebase.auth().signInWithPopup(provider);
+                githubToken = result.credential.accessToken;
+                githubUser = result.additionalUserInfo.username;
+            }
+            
+            const repoName = prompt("GitHub Repository Name:");
+            if (!repoName) return;
+            
             const octo = new Octokit({ auth: githubToken });
-            const repos = await octo.repos.listForAuthenticatedUser({ sort: 'updated' });
-            document.getElementById('repo-list').innerHTML = repos.data.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
-        }
-
-        window.publishSite = async () => {
-            const name = document.getElementById('site-name').value;
-            if(!name || !githubToken) return alert("Connect GitHub & Name Project");
-            const octo = new Octokit({ auth: githubToken });
-            const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${window.editor.getCss()}</style></head><body>${window.editor.getHtml()}</body></html>`;
+            const pages = pm.getAll();
+            
             try {
-                try { await octo.request('POST /user/repos', { name: name, auto_init: true }); } catch(e){}
-                await uploadToGithub(octo, name, 'project-data.json', JSON.stringify(window.editor.getProjectData()));
-                await uploadToGithub(octo, name, 'index.html', html);
-                alert("Site is now live!");
-            } catch(e) { alert("Publication failed. Check repo name."); }
+                try { await octo.request('POST /user/repos', { name: repoName, auto_init: true }); } catch(e) {}
+                
+                // Save every page to the repo
+                for (const page of pages) {
+                    pm.select(page.get('id'));
+                    const html = `<!DOCTYPE html><html><head><style>${editor.getCss()}</style></head><body>${editor.getHtml()}</body></html>`;
+                    const filename = page.get('id') === 'index' ? 'index.html' : `${page.get('id')}.html`;
+                    
+                    await uploadFile(octo, repoName, filename, html);
+                }
+                alert("Multi-page site published successfully!");
+            } catch (e) { alert(e.message); }
         };
 
-        async function uploadToGithub(octo, repo, path, content) {
+        async function uploadFile(octo, repo, path, content) {
             let sha = null;
-            try { const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: path }); sha = res.data.sha; } catch(e){}
-            return octo.repos.createOrUpdateFileContents({ owner: githubUser, repo: repo, path: path, message: 'Apex Build Sync', content: btoa(unescape(encodeURIComponent(content))), sha });
+            try { const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: path }); sha = res.data.sha; } catch(e) {}
+            return octo.repos.createOrUpdateFileContents({ owner: githubUser, repo: repo, path: path, message: 'Sync', content: btoa(unescape(encodeURIComponent(content))), sha });
         }
 
-        window.importProject = async () => {
-            const repo = document.getElementById('repo-list').value;
-            const octo = new Octokit({ auth: githubToken });
-            const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: 'project-data.json' });
-            window.editor.loadProjectData(JSON.parse(atob(res.data.content)));
-            document.getElementById('site-name').value = repo;
-            toggleSync();
+        const exportToZip = async () => {
+            const zip = new JSZip();
+            pm.getAll().forEach(page => {
+                pm.select(page.get('id'));
+                const html = `<!DOCTYPE html><html><head><style>${editor.getCss()}</style></head><body>${editor.getHtml()}</body></html>`;
+                const filename = page.get('id') === 'index' ? 'index.html' : `${page.get('id')}.html`;
+                zip.file(filename, html);
+            });
+            const blob = await zip.generateAsync({ type: "blob" });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = "full_project.zip";
+            link.click();
         };
 
-        window.exportToZip = async () => {
-            const zip = new JSZip();
-            zip.file("index.html", `<!DOCTYPE html><html><head><style>${window.editor.getCss()}</style></head><body>${window.editor.getHtml()}</body></html>`);
-            const blob = await zip.generateAsync({type:"blob"});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "apex_site.zip"; a.click();
-        };
+        editor.on('load', () => {
+            if (!pm.getSelected()) pm.add({ id: 'index', component: '<section style="padding:100px; text-align:center;"><h1>Index Page</h1></section>' });
+        });
     </script>
 </body>
 </html>
