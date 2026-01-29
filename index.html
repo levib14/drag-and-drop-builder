@@ -2,46 +2,48 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>OpenBuilder | Enterprise</title>
+    <title>OpenBuilder | Apex Suite</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
     <style>
-        body, html { height: 100%; margin: 0; overflow: hidden; background: #0a0a0a; font-family: -apple-system, sans-serif; }
+        body, html { height: 100%; margin: 0; overflow: hidden; background: #050505; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         
-        /* Monochromatic Pro Theme */
-        .gjs-one-bg { background-color: #0f0f0f !important; }
+        /* The "Noir" Pro Interface */
+        .gjs-one-bg { background-color: #0d0d0d !important; }
         .gjs-two-bg { background-color: #141414 !important; }
         .gjs-three-bg { background-color: #1a1a1a !important; }
-        .gjs-four-color { color: #ffffff !important; }
-        .gjs-pn-buttons { background-color: #0f0f0f !important; border-bottom: 1px solid #222 !important; }
+        .gjs-four-color { color: #fff !important; }
+        .gjs-four-color-h:hover { color: #3b82f6 !important; }
+        .gjs-pn-buttons { background-color: #0d0d0d !important; border-bottom: 1px solid #222 !important; }
         
-        /* Unified Page Manager UI */
-        #page-sidebar {
-            position: absolute; top: 40px; left: 0; width: 240px; bottom: 0;
-            background: #111; border-right: 1px solid #222; z-index: 1005; 
+        /* Page Navigation Sidebar */
+        #page-manager {
+            position: absolute; top: 40px; left: 0; width: 220px; bottom: 0;
+            background: #0d0d0d; border-right: 1px solid #222; z-index: 1005; 
             display: none; padding: 20px; box-sizing: border-box;
         }
-        .page-item { 
-            padding: 12px; color: #888; cursor: pointer; border-radius: 4px;
-            margin-bottom: 5px; font-size: 13px; display: flex; justify-content: space-between;
+        .page-entry { 
+            padding: 12px; color: #777; cursor: pointer; border-radius: 4px;
+            margin-bottom: 8px; font-size: 12px; display: flex; justify-content: space-between; align-items: center;
+            transition: 0.2s; border: 1px solid transparent;
         }
-        .page-item:hover { background: #1a1a1a; color: #fff; }
-        .page-item.active { background: #222; color: #3b82f6; font-weight: 600; }
+        .page-entry:hover { background: #151515; color: #fff; border-color: #333; }
+        .page-entry.active { background: #1a1a1a; color: #3b82f6; border-color: #3b82f6; font-weight: bold; }
         
-        .sidebar-label { font-size: 10px; color: #444; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px; display: block; }
+        .sidebar-title { font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px; display: block; }
     </style>
 </head>
 <body>
 
-    <div id="page-sidebar">
-        <span class="sidebar-label">Project Pages</span>
+    <div id="page-manager">
+        <span class="sidebar-title">Project Architecture</span>
         <div id="page-list"></div>
-        <button onclick="addNewPage()" style="width: 100%; margin-top: 20px; background: #fff; color: #000; border: none; padding: 10px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 11px;">+ NEW PAGE</button>
+        <button onclick="createNewPage()" style="width: 100%; margin-top: 25px; background: #fff; color: #000; border: none; padding: 12px; cursor: pointer; font-weight: 800; border-radius: 4px; font-size: 10px; letter-spacing: 1px;">+ ADD NEW PAGE</button>
     </div>
 
     <div id="gjs"></div>
@@ -49,46 +51,49 @@
     <script type="module">
         import { Octokit } from "https://cdn.skypack.dev/@octokit/rest";
 
-        // Initialize Firebase
+        // Auth Setup
         const firebaseConfig = { apiKey: "AIzaSyBtcrbgIblZlg5mqGJPaGTFctCoTPrY-WQ", authDomain: "web-maker-c6261.firebaseapp.com", projectId: "web-maker-c6261" };
         firebase.initializeApp(firebaseConfig);
 
-        window.editor = grapesjs.init({
+        const editor = grapesjs.init({
             container: '#gjs',
             height: '100%',
             fromElement: true,
             storageManager: false,
             allowScripts: 1,
             pageManager: true,
-            canvas: { 
-                styles: [
-                    'https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap'
-                ] 
-            },
+            assetManager: { embedAsBase64: 1 },
+            canvas: { styles: ['https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap'] },
             blockManager: {
                 blocks: [
                     {
-                        id: 'text', label: 'Text Block', category: 'Basic',
-                        content: { type: 'text', content: 'Insert Text Here', style: { position: 'absolute', top: '50px', left: '50px', padding: '10px', color: '#fff' } }
+                        id: 'section', label: 'Pro Section', category: 'Layout',
+                        content: `<section style="padding:80px 0; display:flex; flex-direction:column; align-items:center; position:relative; min-height:400px; background:#000;">
+                                    <h1 style="color:#fff; font-size:48px; margin:20px 0;">Hero Title</h1>
+                                    <p style="color:#666; font-size:18px;">Build without limits.</p>
+                                  </section>`
                     },
                     {
-                        id: 'image', label: 'Image', category: 'Basic',
-                        content: { type: 'image', style: { position: 'absolute', top: '100px', left: '100px', width: '200px' } }
+                        id: 'free-text', label: 'Free Text', category: 'Basic',
+                        content: { type: 'text', content: 'Move me anywhere', style: { position: 'absolute', top: '100px', left: '100px', color: '#fff', padding: '10px' } }
                     },
                     {
-                        id: 'link-btn', label: 'Page Link Button', category: 'General',
+                        id: 'free-img', label: 'Free Image', category: 'Basic',
+                        content: { type: 'image', style: { position: 'absolute', top: '150px', left: '150px', width: '250px' } }
+                    },
+                    {
+                        id: 'action-btn', label: 'Page Link', category: 'General',
                         content: { 
-                            tagName: 'a', 
-                            content: 'Click to Navigate', 
-                            style: { position: 'absolute', top: '200px', left: '100px', padding: '12px 24px', background: '#3b82f6', color: '#fff', 'text-decoration': 'none', 'border-radius': '4px' },
+                            tagName: 'a', content: 'Explore', 
+                            style: { position: 'absolute', top: '300px', left: '100px', padding: '14px 28px', background: '#3b82f6', color: '#fff', 'text-decoration': 'none', 'border-radius': '4px', 'font-weight': 'bold' },
                             traits: ['href', 'target'] 
                         }
                     },
                     {
-                        id: 'code-embed', label: 'Custom Code', category: 'Advanced',
+                        id: 'raw-code', label: 'Code Embed', category: 'Advanced',
                         content: {
                             type: 'default',
-                            content: '<div style="padding:20px; border:1px dashed #333; color:#444;">Custom Embed Content</div>',
+                            content: '<div style="padding:30px; border:1px dashed #333; text-align:center; color:#444; font-family:monospace;">[Injection Point]</div>',
                             traits: [{ type: 'textarea', label: 'HTML/Script', name: 'custom-code' }]
                         }
                     }
@@ -96,100 +101,92 @@
             }
         });
 
-        const pm = window.editor.Pages;
-        const pn = window.editor.Panels;
+        const pm = editor.Pages;
+        const pn = editor.Panels;
 
-        // --- Integrated Header Buttons ---
+        // 1. ADD CUSTOM HEADER CONTROLS
         pn.addButton('options', [
             {
-                id: 'open-pages', className: 'fa fa-copy',
+                id: 'toggle-pages', className: 'fa fa-sitemap',
                 command: () => {
-                    const sb = document.getElementById('page-sidebar');
+                    const sb = document.getElementById('page-manager');
                     sb.style.display = sb.style.display === 'none' ? 'block' : 'none';
-                    refreshPageUI();
+                    refreshPages();
                 },
-                attributes: { title: 'Manage Site Pages' }
+                attributes: { title: 'Project Structure' }
             },
-            { id: 'undo', className: 'fa fa-undo', command: e => e.UndoManager.undo() },
-            { id: 'redo', className: 'fa fa-repeat', command: e => e.UndoManager.redo() },
-            { id: 'publish-btn', className: 'fa fa-rocket', command: () => pushToGitHub(), attributes: { title: 'Publish to GitHub Pages' } }
+            { id: 'undo', className: 'fa fa-undo', command: 'core:undo' },
+            { id: 'redo', className: 'fa fa-repeat', command: 'core:redo' },
+            { id: 'deploy-site', className: 'fa fa-paper-plane', command: () => deployToProduction(), attributes: { title: 'Publish to Web' } }
         ]);
 
-        // --- Page Management Logic ---
-        window.addNewPage = () => {
-            const name = prompt("Enter page name (e.g., about, services):");
+        // 2. PAGE MANAGEMENT SYSTEM
+        window.createNewPage = () => {
+            const name = prompt("Page filename (e.g. 'about' becomes 'about.html'):");
             if (name) {
-                pm.add({ id: name, component: `<div style="height:100vh; background:#000; color:#fff; position:relative; padding:50px;"><h1>${name} Page</h1></div>` });
-                refreshPageUI();
+                pm.add({ id: name, component: `<div style="height:100vh; background:#050505; color:#fff; position:relative; padding:100px;"><h1>${name} Page</h1></div>` });
+                refreshPages();
             }
         };
 
-        const refreshPageUI = () => {
+        const refreshPages = () => {
             const list = document.getElementById('page-list');
             list.innerHTML = '';
             pm.getAll().forEach(page => {
-                const item = document.createElement('div');
-                item.className = `page-item ${page.id === pm.getSelected().id ? 'active' : ''}`;
-                item.innerHTML = `<span>${page.id}.html</span>`;
-                item.onclick = () => { pm.select(page.id); refreshPageUI(); };
-                list.appendChild(item);
+                const el = document.createElement('div');
+                el.className = `page-entry ${page.id === pm.getSelected().id ? 'active' : ''}`;
+                el.innerHTML = `<span>${page.id}.html</span> <i class="fa fa-angle-right"></i>`;
+                el.onclick = () => { pm.select(page.id); refreshPages(); };
+                list.appendChild(el);
             });
         };
 
-        // --- Deployment Logic (GitHub Pages focus) ---
-        let githubToken = "", githubUser = "";
-        
-        const pushToGitHub = async () => {
-            if (!githubToken) {
+        // 3. ENTERPRISE DEPLOYMENT LOGIC
+        let ghToken = "", ghUser = "";
+        const deployToProduction = async () => {
+            if (!ghToken) {
                 const provider = new firebase.auth.GithubAuthProvider();
                 provider.addScope('repo');
                 const result = await firebase.auth().signInWithPopup(provider);
-                githubToken = result.credential.accessToken;
-                githubUser = result.additionalUserInfo.username;
+                ghToken = result.credential.accessToken;
+                ghUser = result.additionalUserInfo.username;
             }
             
-            const repoName = prompt("Project ID / Repo Name:");
-            if (!repoName) return;
+            const repo = prompt("Production Repository Name:");
+            if (!repo) return;
+            const octo = new Octokit({ auth: ghToken });
 
-            const octo = new Octokit({ auth: githubToken });
-            
             try {
-                // Ensure repo exists
-                try { await octo.request('POST /user/repos', { name: repoName, auto_init: true }); } catch(e) {}
-
-                const allPages = pm.getAll();
-                for (const page of allPages) {
+                // Ensure Repo Exists
+                try { await octo.request('POST /user/repos', { name: repo, auto_init: true }); } catch(e) {}
+                
+                const pages = pm.getAll();
+                for (const page of pages) {
                     pm.select(page.id);
-                    const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${window.editor.getCss()}</style></head><body>${window.editor.getHtml()}</body></html>`;
+                    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${editor.getCss()}</style></head><body>${editor.getHtml()}</body></html>`;
                     
-                    // CRITICAL: Ensure the main page is index.html for GitHub Pages compatibility
-                    const finalFilename = (page.id === 'index' || allPages.length === 1) ? 'index.html' : `${page.id}.html`;
+                    // CRITICAL: Force the main page to be index.html for hosting
+                    const filename = (page.id === 'index' || pages.length === 1) ? 'index.html' : `${page.id}.html`;
                     
-                    await syncFile(octo, repoName, finalFilename, htmlContent);
+                    await pushFile(octo, repo, filename, html);
                 }
-                alert(`Successfully deployed to ${githubUser}.github.io/${repoName}/`);
-            } catch (err) { alert("Deployment Error: " + err.message); }
+                alert(`SUCCESS: Site live at https://${ghUser}.github.io/${repo}/`);
+            } catch (err) { alert("Deploy Failed: " + err.message); }
         };
 
-        async function syncFile(octo, repo, path, content) {
+        async function pushFile(octo, repo, path, content) {
             let sha = null;
-            try { 
-                const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: path }); 
-                sha = res.data.sha; 
-            } catch (e) {}
-            
+            try { const res = await octo.repos.getContent({ owner: ghUser, repo: repo, path: path }); sha = res.data.sha; } catch(e) {}
             return octo.repos.createOrUpdateFileContents({
-                owner: githubUser, repo: repo, path: path,
-                message: 'OpenBuilder Sync',
+                owner: ghUser, repo: repo, path: path,
+                message: 'OpenBuilder Production Build',
                 content: btoa(unescape(encodeURIComponent(content))),
                 sha: sha
             });
         }
 
-        window.editor.on('load', () => {
-            if (!pm.getSelected()) {
-                pm.add({ id: 'index', component: '<div style="height:100vh; background:#000; position:relative;"></div>' });
-            }
+        editor.on('load', () => {
+            if (!pm.getSelected()) pm.add({ id: 'index', component: '<div style="height:100vh; background:#050505; position:relative;"></div>' });
         });
     </script>
 </body>
