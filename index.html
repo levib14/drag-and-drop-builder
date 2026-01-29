@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>OpenBuilder | Apex Suite</title>
+    <title>OpenBuilder | Pro-Persistence</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
@@ -11,39 +11,54 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
     <style>
-        body, html { height: 100%; margin: 0; overflow: hidden; background: #050505; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body, html { height: 100%; margin: 0; overflow: hidden; background: #080808; color: #fff; font-family: -apple-system, sans-serif; }
         
-        /* The "Noir" Pro Interface */
+        /* Monochromatic UI */
         .gjs-one-bg { background-color: #0d0d0d !important; }
-        .gjs-two-bg { background-color: #141414 !important; }
+        .gjs-two-bg { background-color: #121212 !important; }
         .gjs-three-bg { background-color: #1a1a1a !important; }
         .gjs-four-color { color: #fff !important; }
-        .gjs-four-color-h:hover { color: #3b82f6 !important; }
         .gjs-pn-buttons { background-color: #0d0d0d !important; border-bottom: 1px solid #222 !important; }
         
-        /* Page Navigation Sidebar */
-        #page-manager {
-            position: absolute; top: 40px; left: 0; width: 220px; bottom: 0;
+        /* Sidebar Styles */
+        #sidebar {
+            position: absolute; top: 40px; left: 0; width: 260px; bottom: 0;
             background: #0d0d0d; border-right: 1px solid #222; z-index: 1005; 
             display: none; padding: 20px; box-sizing: border-box;
         }
-        .page-entry { 
-            padding: 12px; color: #777; cursor: pointer; border-radius: 4px;
-            margin-bottom: 8px; font-size: 12px; display: flex; justify-content: space-between; align-items: center;
-            transition: 0.2s; border: 1px solid transparent;
+        .item-row { 
+            padding: 12px; color: #666; cursor: pointer; border-radius: 4px;
+            margin-bottom: 5px; font-size: 12px; transition: 0.2s; border: 1px solid transparent;
         }
-        .page-entry:hover { background: #151515; color: #fff; border-color: #333; }
-        .page-entry.active { background: #1a1a1a; color: #3b82f6; border-color: #3b82f6; font-weight: bold; }
+        .item-row:hover, .item-row.active { background: #1a1a1a; color: #3b82f6; border-color: #333; }
         
-        .sidebar-title { font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px; display: block; }
+        /* Status Bubble */
+        #status-bubble {
+            position: fixed; bottom: 25px; right: 25px; padding: 12px 24px;
+            background: #3b82f6; color: white; border-radius: 4px; font-size: 11px;
+            font-weight: 800; display: none; z-index: 10000; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        .action-btn { width: 100%; margin-top: 10px; border: none; padding: 10px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 10px; }
+        .btn-main { background: #fff; color: #000; }
+        .btn-sec { background: #222; color: #fff; border: 1px solid #444; }
     </style>
 </head>
 <body>
 
-    <div id="page-manager">
-        <span class="sidebar-title">Project Architecture</span>
-        <div id="page-list"></div>
-        <button onclick="createNewPage()" style="width: 100%; margin-top: 25px; background: #fff; color: #000; border: none; padding: 12px; cursor: pointer; font-weight: 800; border-radius: 4px; font-size: 10px; letter-spacing: 1px;">+ ADD NEW PAGE</button>
+    <div id="status-bubble">Syncing...</div>
+
+    <div id="sidebar">
+        <span style="font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 2px;">Project Storage</span>
+        <input type="text" id="repo-input" placeholder="GitHub Repository Name" style="width:100%; background:#000; border:1px solid #333; color:white; padding:10px; margin-top:10px; border-radius:4px; font-size:12px;">
+        <button onclick="importProject()" class="action-btn btn-sec">↓ IMPORT PROJECT JSON</button>
+
+        <hr style="border:0; border-top:1px solid #222; margin:25px 0;">
+        
+        <span style="font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 2px;">Site Pages</span>
+        <div id="page-list" style="margin-top:15px;"></div>
+        <button onclick="addPage()" class="action-btn btn-main">+ NEW PAGE</button>
     </div>
 
     <div id="gjs"></div>
@@ -51,50 +66,32 @@
     <script type="module">
         import { Octokit } from "https://cdn.skypack.dev/@octokit/rest";
 
-        // Auth Setup
         const firebaseConfig = { apiKey: "AIzaSyBtcrbgIblZlg5mqGJPaGTFctCoTPrY-WQ", authDomain: "web-maker-c6261.firebaseapp.com", projectId: "web-maker-c6261" };
         firebase.initializeApp(firebaseConfig);
 
         const editor = grapesjs.init({
             container: '#gjs',
             height: '100%',
-            fromElement: true,
             storageManager: false,
-            allowScripts: 1,
             pageManager: true,
-            assetManager: { embedAsBase64: 1 },
+            allowScripts: 1,
             canvas: { styles: ['https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap'] },
             blockManager: {
                 blocks: [
                     {
-                        id: 'section', label: 'Pro Section', category: 'Layout',
-                        content: `<section style="padding:80px 0; display:flex; flex-direction:column; align-items:center; position:relative; min-height:400px; background:#000;">
-                                    <h1 style="color:#fff; font-size:48px; margin:20px 0;">Hero Title</h1>
-                                    <p style="color:#666; font-size:18px;">Build without limits.</p>
-                                  </section>`
+                        id: 'text', label: 'Draggable Text', category: 'Basic',
+                        content: { type: 'text', content: 'Double click to edit', style: { position: 'absolute', top: '100px', left: '100px', color: '#fff' } }
                     },
                     {
-                        id: 'free-text', label: 'Free Text', category: 'Basic',
-                        content: { type: 'text', content: 'Move me anywhere', style: { position: 'absolute', top: '100px', left: '100px', color: '#fff', padding: '10px' } }
+                        id: 'image', label: 'Draggable Image', category: 'Basic',
+                        content: { type: 'image', style: { position: 'absolute', top: '150px', left: '150px', width: '300px' } }
                     },
                     {
-                        id: 'free-img', label: 'Free Image', category: 'Basic',
-                        content: { type: 'image', style: { position: 'absolute', top: '150px', left: '150px', width: '250px' } }
-                    },
-                    {
-                        id: 'action-btn', label: 'Page Link', category: 'General',
+                        id: 'btn', label: 'Action Button', category: 'General',
                         content: { 
                             tagName: 'a', content: 'Explore', 
-                            style: { position: 'absolute', top: '300px', left: '100px', padding: '14px 28px', background: '#3b82f6', color: '#fff', 'text-decoration': 'none', 'border-radius': '4px', 'font-weight': 'bold' },
-                            traits: ['href', 'target'] 
-                        }
-                    },
-                    {
-                        id: 'raw-code', label: 'Code Embed', category: 'Advanced',
-                        content: {
-                            type: 'default',
-                            content: '<div style="padding:30px; border:1px dashed #333; text-align:center; color:#444; font-family:monospace;">[Injection Point]</div>',
-                            traits: [{ type: 'textarea', label: 'HTML/Script', name: 'custom-code' }]
+                            style: { position: 'absolute', top: '250px', left: '100px', padding: '14px 28px', background: '#3b82f6', color: '#fff', 'text-decoration': 'none', 'border-radius': '4px', 'font-weight': 'bold' },
+                            traits: ['href'] 
                         }
                     }
                 ]
@@ -104,46 +101,52 @@
         const pm = editor.Pages;
         const pn = editor.Panels;
 
-        // 1. ADD CUSTOM HEADER CONTROLS
+        // Toolbar Buttons
         pn.addButton('options', [
             {
-                id: 'toggle-pages', className: 'fa fa-sitemap',
+                id: 'sidebar-toggle', className: 'fa fa-bars',
                 command: () => {
-                    const sb = document.getElementById('page-manager');
+                    const sb = document.getElementById('sidebar');
                     sb.style.display = sb.style.display === 'none' ? 'block' : 'none';
-                    refreshPages();
-                },
-                attributes: { title: 'Project Structure' }
+                    refreshPageList();
+                }
             },
             { id: 'undo', className: 'fa fa-undo', command: 'core:undo' },
             { id: 'redo', className: 'fa fa-repeat', command: 'core:redo' },
-            { id: 'deploy-site', className: 'fa fa-paper-plane', command: () => deployToProduction(), attributes: { title: 'Publish to Web' } }
+            { id: 'push-gh', className: 'fa fa-paper-plane', command: () => silentPush(), attributes: { title: 'Save & Publish' } }
         ]);
 
-        // 2. PAGE MANAGEMENT SYSTEM
-        window.createNewPage = () => {
-            const name = prompt("Page filename (e.g. 'about' becomes 'about.html'):");
+        window.addPage = () => {
+            const name = prompt("Page Filename:");
             if (name) {
-                pm.add({ id: name, component: `<div style="height:100vh; background:#050505; color:#fff; position:relative; padding:100px;"><h1>${name} Page</h1></div>` });
-                refreshPages();
+                pm.add({ id: name, component: `<div style="height:100vh; background:#080808; position:relative;"><h1>${name}</h1></div>` });
+                refreshPageList();
             }
         };
 
-        const refreshPages = () => {
+        const refreshPageList = () => {
             const list = document.getElementById('page-list');
             list.innerHTML = '';
             pm.getAll().forEach(page => {
-                const el = document.createElement('div');
-                el.className = `page-entry ${page.id === pm.getSelected().id ? 'active' : ''}`;
-                el.innerHTML = `<span>${page.id}.html</span> <i class="fa fa-angle-right"></i>`;
-                el.onclick = () => { pm.select(page.id); refreshPages(); };
-                list.appendChild(el);
+                const row = document.createElement('div');
+                row.className = `item-row ${page.id === pm.getSelected().id ? 'active' : ''}`;
+                row.innerHTML = `<span>${page.id}.html</span>`;
+                row.onclick = () => { pm.select(page.id); refreshPageList(); };
+                list.appendChild(row);
             });
         };
 
-        // 3. ENTERPRISE DEPLOYMENT LOGIC
         let ghToken = "", ghUser = "";
-        const deployToProduction = async () => {
+
+        // --- THE "SILENT PUSH" & PROJECT JSON ENGINE ---
+        const silentPush = async () => {
+            const repo = document.getElementById('repo-input').value;
+            if (!repo) return alert("Please enter a Repository Name in the sidebar.");
+
+            const status = document.getElementById('status-bubble');
+            status.innerText = "Pushing to GitHub...";
+            status.style.display = "block";
+
             if (!ghToken) {
                 const provider = new firebase.auth.GithubAuthProvider();
                 provider.addScope('repo');
@@ -151,42 +154,84 @@
                 ghToken = result.credential.accessToken;
                 ghUser = result.additionalUserInfo.username;
             }
-            
-            const repo = prompt("Production Repository Name:");
-            if (!repo) return;
+
             const octo = new Octokit({ auth: ghToken });
 
             try {
-                // Ensure Repo Exists
+                // Ensure Repo
                 try { await octo.request('POST /user/repos', { name: repo, auto_init: true }); } catch(e) {}
-                
+
+                // 1. UPLOAD PROJECT JSON (The Save State)
+                const projectData = JSON.stringify(editor.getProjectData());
+                await upload(octo, repo, 'project-data.json', projectData);
+
+                // 2. UPLOAD ALL PAGES
                 const pages = pm.getAll();
                 for (const page of pages) {
                     pm.select(page.id);
                     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${editor.getCss()}</style></head><body>${editor.getHtml()}</body></html>`;
                     
-                    // CRITICAL: Force the main page to be index.html for hosting
-                    const filename = (page.id === 'index' || pages.length === 1) ? 'index.html' : `${page.id}.html`;
+                    // Logic: First page created or "index" is index.html
+                    const isIndex = (page.id === 'index' || pages.indexOf(page) === 0);
+                    const filename = isIndex ? 'index.html' : `${page.id}.html`;
                     
-                    await pushFile(octo, repo, filename, html);
+                    await upload(octo, repo, filename, html);
                 }
-                alert(`SUCCESS: Site live at https://${ghUser}.github.io/${repo}/`);
-            } catch (err) { alert("Deploy Failed: " + err.message); }
+
+                status.innerText = "Project Saved & Published!";
+                setTimeout(() => status.style.display = "none", 3000);
+            } catch (err) {
+                status.innerText = "Push Failed!";
+                console.error(err);
+            }
         };
 
-        async function pushFile(octo, repo, path, content) {
+        // --- IMPORT ENGINE ---
+        window.importProject = async () => {
+            const repo = document.getElementById('repo-input').value;
+            if (!repo) return alert("Enter the Repository Name to import from.");
+
+            const status = document.getElementById('status-bubble');
+            status.innerText = "Importing JSON...";
+            status.style.display = "block";
+
+            if (!ghToken) {
+                const provider = new firebase.auth.GithubAuthProvider();
+                provider.addScope('repo');
+                const result = await firebase.auth().signInWithPopup(provider);
+                ghToken = result.credential.accessToken;
+                ghUser = result.additionalUserInfo.username;
+            }
+
+            const octo = new Octokit({ auth: ghToken });
+
+            try {
+                const res = await octo.repos.getContent({ owner: ghUser, repo: repo, path: 'project-data.json' });
+                const jsonContent = atob(res.data.content);
+                editor.loadProjectData(JSON.parse(jsonContent));
+                
+                status.innerText = "Import Successful!";
+                refreshPageList();
+                setTimeout(() => status.style.display = "none", 3000);
+            } catch (e) {
+                status.innerText = "No Save Data Found.";
+                setTimeout(() => status.style.display = "none", 3000);
+            }
+        };
+
+        async function upload(octo, repo, path, content) {
             let sha = null;
             try { const res = await octo.repos.getContent({ owner: ghUser, repo: repo, path: path }); sha = res.data.sha; } catch(e) {}
             return octo.repos.createOrUpdateFileContents({
                 owner: ghUser, repo: repo, path: path,
-                message: 'OpenBuilder Production Build',
+                message: 'OpenBuilder Auto-Sync',
                 content: btoa(unescape(encodeURIComponent(content))),
                 sha: sha
             });
         }
 
         editor.on('load', () => {
-            if (!pm.getSelected()) pm.add({ id: 'index', component: '<div style="height:100vh; background:#050505; position:relative;"></div>' });
+            if (!pm.getSelected()) pm.add({ id: 'index', component: '<div style="height:100vh; background:#080808; position:relative;"></div>' });
         });
     </script>
 </body>
