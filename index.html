@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>OpenBuilder | Refined</title>
+    <title>OpenBuilder | Unified</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -11,68 +11,65 @@
         :root { --panel-bg: #1e1e1e; --border: #333; --accent: #3b82f6; }
         body, html { height: 100%; margin: 0; font-family: 'Inter', sans-serif; background: #111; color: white; overflow: hidden; }
         
-        /* Fixed Header */
+        /* Minimal Header */
         .app-header { 
-            height: 50px; background: var(--panel-bg); display: flex; 
+            height: 40px; background: var(--panel-bg); display: flex; 
             justify-content: space-between; align-items: center; 
-            padding: 0 15px; border-bottom: 1px solid var(--border);
-            box-sizing: border-box;
+            padding: 0 10px; border-bottom: 1px solid var(--border);
         }
 
-        .header-left, .header-right { display: flex; align-items: center; gap: 12px; }
-
-        /* The Styled Dropdown */
-        .device-dropdown {
-            background: #111; color: #ccc; border: 1px solid var(--border);
-            padding: 5px 10px; border-radius: 4px; font-size: 13px;
-            cursor: pointer; outline: none; width: 120px;
-        }
-
-        /* Sync Panel Drawer */
+        /* Sidebar Drawer */
         #sync-panel {
-            width: 0; position: fixed; left: 0; top: 50px; bottom: 0;
+            width: 0; position: fixed; left: 0; top: 40px; bottom: 0;
             background: var(--panel-bg); border-right: 1px solid var(--border);
             transition: 0.3s; z-index: 1000; overflow-x: hidden;
         }
-        #sync-panel.open { width: 280px; padding: 20px; }
+        #sync-panel.open { width: 300px; padding: 20px; }
 
-        .btn-toggle { background: var(--border); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        .btn-main { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-danger { background: #ef444422; color: #ef4444; border: 1px solid #ef444444; padding: 8px; border-radius: 4px; cursor: pointer; width: 100%; margin-top: 10px; font-size: 12px; }
+        /* Warning Toast */
+        #warning-toast {
+            display: none; position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+            background: #78350f; color: #fcd34d; padding: 10px 20px; border-radius: 6px;
+            border: 1px solid #f59e0b; z-index: 2000; font-size: 13px;
+        }
 
-        input { background: #111; border: 1px solid var(--border); color: white; padding: 8px; border-radius: 4px; font-size: 13px; }
-        #gjs { height: calc(100vh - 50px) !important; }
+        .btn-sync { background: var(--accent); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .btn-flat { background: #333; color: #ccc; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+        input { background: #111; border: 1px solid var(--border); color: white; padding: 5px 10px; border-radius: 4px; font-size: 13px; }
+        
+        #gjs { height: calc(100vh - 40px) !important; }
+        
+        /* Hide GrapesJS default device buttons so we don't have duplicates if they reappear */
+        .gjs-pn-devices-c { display: none; } 
     </style>
 </head>
 <body>
 
     <header class="app-header">
-        <div class="header-left">
-            <button class="btn-toggle" onclick="toggleSync()">☁️ Cloud Sync</button>
-            <select class="device-dropdown" onchange="editor.setDevice(this.value)">
-                <option value="Desktop">Desktop View</option>
-                <option value="Tablet">Tablet View</option>
-                <option value="Mobile portrait">Mobile View</option>
-            </select>
+        <div style="display:flex; gap:10px; align-items: center;">
+            <button class="btn-sync" onclick="toggleSync()">☁️ Sync Panel</button>
+            <span id="load-status" style="font-size: 11px; color: #666;">Ready</span>
         </div>
 
-        <div class="header-right">
-            <input type="text" id="site-name" placeholder="Project Name" style="width:140px;">
-            <button class="btn-main" onclick="publishSite()">Publish</button>
+        <div id="warning-toast">⚠️ <b>Legacy Load:</b> This site has no project data. Editing may be unstable.</div>
+
+        <div style="display:flex; gap:10px; align-items: center;">
+            <input type="text" id="site-name" placeholder="Project Name">
+            <button class="btn-sync" onclick="publishSite()">Publish</button>
         </div>
     </header>
 
     <div id="sync-panel">
-        <h3 style="font-size:12px; color:#666; text-transform:uppercase;">Cloud Management</h3>
-        <button class="btn-main" style="width:100%" id="auth-btn" onclick="connectGitHub()">Connect GitHub</button>
+        <h3 style="font-size:11px; color:#666; text-transform:uppercase; letter-spacing:1px;">Cloud Sync</h3>
+        <button class="btn-flat" style="width:100%" id="auth-btn" onclick="connectGitHub()">🔑 Connect GitHub</button>
         
-        <div id="repo-ui" style="display:none; margin-top:15px;">
-            <select id="repo-list" style="width:100%; background:#111; color:white; border:1px solid #333; padding:8px; border-radius:4px; margin-bottom:10px;"></select>
-            <button class="btn-main" style="width:100%" onclick="importProject()">📂 Load Project</button>
+        <div id="repo-ui" style="display:none; margin-top:20px;">
+            <select id="repo-list" style="width:100%; background:#111; color:white; border:1px solid #333; padding:8px; border-radius:4px; margin-bottom:12px;"></select>
+            <button class="btn-sync" style="width:100%" onclick="importProject()">📂 Load Project</button>
             
-            <div style="margin-top:30px; border-top:1px solid #333; padding-top:15px;">
-                <button class="btn-toggle" style="width:100%; margin-bottom:10px;" onclick="resetCanvas()">✨ Fresh Start (Clear All)</button>
-                <button class="btn-danger" onclick="deleteCurrentProject()">⚠️ Delete Repository</button>
+            <div style="margin-top:40px; border-top:1px solid #333; padding-top:20px;">
+                <button class="btn-flat" style="width:100%; margin-bottom:10px;" onclick="resetCanvas()">✨ Clear Canvas</button>
+                <button onclick="deleteCurrentProject()" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:11px; width:100%;">Delete Repository</button>
             </div>
         </div>
     </div>
@@ -89,27 +86,30 @@
             container: '#gjs',
             height: '100%',
             storageManager: false,
+            // We use GrapesJS's native device manager but control it via the editor's default panels
             deviceManager: {
                 devices: [
                     { name: 'Desktop', width: '' },
                     { name: 'Tablet', width: '768px', widthMedia: '992px' },
-                    { name: 'Mobile portrait', width: '320px', widthMedia: '480px' }
+                    { name: 'Mobile', width: '320px', widthMedia: '480px' }
                 ]
             }
         });
 
-        // UI Functions
+        // Toggle Sync Panel
         window.toggleSync = () => document.getElementById('sync-panel').classList.toggle('open');
-        
+
+        // Reset Canvas
         window.resetCanvas = () => {
-            if(confirm("Clear everything and start a new project?")) {
+            if(confirm("Clear all work?")) {
                 editor.DomComponents.clear();
                 editor.CssComposer.clear();
                 document.getElementById('site-name').value = '';
+                document.getElementById('warning-toast').style.display = 'none';
             }
         };
 
-        // GitHub Logic (Integrated)
+        // GitHub Setup
         let githubToken = "", githubUser = "";
         window.connectGitHub = async () => {
             const provider = new firebase.auth.GithubAuthProvider();
@@ -128,22 +128,36 @@
             document.getElementById('repo-list').innerHTML = repos.data.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
         }
 
+        // --- IMPROVED SMART LOAD ---
         window.importProject = async () => {
             const repo = document.getElementById('repo-list').value;
             const octo = new Octokit({ auth: githubToken });
+            const toast = document.getElementById('warning-toast');
+            toast.style.display = 'none';
+
             try {
+                // Priority 1: Project JSON (The "Brain")
                 const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: 'project-data.json' });
                 editor.loadProjectData(JSON.parse(atob(res.data.content)));
-                document.getElementById('site-name').value = repo;
-                toggleSync();
+                document.getElementById('load-status').innerText = "Loaded via Data Sync";
             } catch(e) {
-                alert("Could not find project data in this repo.");
+                // Priority 2: Raw HTML (The "Unstable" Fallback)
+                try {
+                    const resHtml = await octo.repos.getContent({ owner: githubUser, repo: repo, path: 'index.html' });
+                    editor.setComponents(atob(resHtml.data.content));
+                    toast.style.display = 'block'; // Show the warning!
+                    document.getElementById('load-status').innerText = "Loaded via HTML Scrape";
+                } catch(e2) {
+                    alert("This repo is empty.");
+                }
             }
+            document.getElementById('site-name').value = repo;
+            toggleSync();
         };
 
         window.publishSite = async () => {
             const name = document.getElementById('site-name').value;
-            if(!name || !githubToken) return alert("Missing info!");
+            if(!name || !githubToken) return alert("Missing Site Name!");
             const octo = new Octokit({ auth: githubToken });
             const html = `<!DOCTYPE html><html><head><style>${editor.getCss()}</style></head><body>${editor.getHtml()}</body></html>`;
 
@@ -151,7 +165,7 @@
                 try { await octo.request('POST /user/repos', { name: name, auto_init: true }); } catch (e) {}
                 await uploadFile(octo, name, 'project-data.json', JSON.stringify(editor.getProjectData()));
                 await uploadFile(octo, name, 'index.html', html);
-                alert("Site Published!");
+                alert("Site Updated!");
             } catch(e) { alert(e.message); }
         };
 
@@ -163,7 +177,7 @@
 
         window.deleteCurrentProject = async () => {
             const repo = document.getElementById('site-name').value;
-            if(!repo || !confirm("Delete repo forever?")) return;
+            if(!repo || !confirm("Delete " + repo + " forever?")) return;
             const octo = new Octokit({ auth: githubToken });
             await octo.repos.delete({ owner: githubUser, repo: repo });
             location.reload();
