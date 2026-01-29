@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>OpenBuilder | Full Suite</title>
+    <title>OpenBuilder | Pro Creator</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -9,83 +9,101 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
     <style>
-        :root { --panel-bg: #1e1e1e; --border: #333; --accent: #3b82f6; --danger: #ef4444; }
-        body, html { height: 100%; margin: 0; font-family: 'Inter', sans-serif; background: #111; color: white; overflow: hidden; }
+        :root { --bg: #111; --panel: #1a1a1a; --border: #333; --accent: #3b82f6; --text: #efefef; }
+        body, html { height: 100%; margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
         
-        /* Unified Header */
+        /* Premium Header UI */
         .app-header { 
-            height: 45px; background: var(--panel-bg); display: flex; 
+            height: 55px; background: var(--panel); display: flex; 
             justify-content: space-between; align-items: center; 
-            padding: 0 10px; border-bottom: 1px solid var(--border);
+            padding: 0 15px; border-bottom: 1px solid var(--border);
             z-index: 1001; position: relative;
         }
 
-        /* Sidebar Drawer for Cloud/Export */
+        .btn-group { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+        
+        /* Sophisticated Button Styles */
+        .btn { 
+            background: #2a2a2a; color: #fff; border: 1px solid var(--border);
+            padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;
+            font-weight: 600; transition: 0.2s; display: flex; align-items: center; gap: 8px;
+        }
+        .btn:hover { background: #333; border-color: #555; }
+        .btn-primary { background: var(--accent); border: none; }
+        .btn-primary:hover { background: #2563eb; transform: scale(1.02); }
+
+        /* Fixed Device Selector (No Clipping) */
+        .device-selector {
+            background: #111; color: white; border: 1px solid var(--border);
+            padding: 7px 12px; border-radius: 6px; font-size: 13px; outline: none;
+            cursor: pointer; min-width: 130px; appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat; background-position: right 10px center; background-size: 10px;
+        }
+
+        /* Sidebar Drawer */
         #sync-panel {
-            width: 0; position: fixed; left: 0; top: 45px; bottom: 0;
-            background: var(--panel-bg); border-right: 1px solid var(--border);
-            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; overflow-x: hidden;
-            display: flex; flex-direction: column;
+            width: 0; position: fixed; left: 0; top: 55px; bottom: 0;
+            background: var(--panel); border-right: 1px solid var(--border);
+            transition: 0.35s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; overflow: hidden;
         }
-        #sync-panel.open { width: 320px; padding: 20px; box-sizing: border-box; }
+        #sync-panel.open { width: 320px; padding: 25px; box-sizing: border-box; }
 
-        /* Status & Toasts */
-        #warning-toast {
-            display: none; position: fixed; top: 55px; left: 50%; transform: translateX(-50%);
-            background: #78350f; color: #fcd34d; padding: 8px 16px; border-radius: 4px;
-            border: 1px solid #f59e0b; z-index: 2000; font-size: 12px;
-        }
-        #popup-toast { 
-            display: none; position: fixed; bottom: 20px; left: 20px; 
-            background: #f59e0b; color: #000; padding: 12px; border-radius: 6px; 
-            z-index: 3000; font-weight: bold; font-size: 13px;
-        }
-
-        /* UI Elements */
-        .btn { border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; }
-        .btn-sync { background: var(--accent); color: white; }
-        .btn-zip { background: #6366f1; color: white; }
-        .btn-flat { background: #333; color: #ccc; margin-top: 5px; }
-        .btn-danger { background: none; color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); margin-top: 20px; }
-        .btn-danger:hover { background: rgba(239, 68, 68, 0.1); }
+        input { background: #000; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; }
         
-        input, select { background: #111; border: 1px solid var(--border); color: white; padding: 8px; border-radius: 4px; font-size: 13px; margin-bottom: 10px; width: 100%; box-sizing: border-box; }
+        #gjs { height: calc(100vh - 55px) !important; }
         
-        #gjs { height: calc(100vh - 45px) !important; }
+        .global-style-section { margin-top: 25px; border-top: 1px solid var(--border); padding-top: 20px; }
     </style>
 </head>
 <body>
 
     <header class="app-header">
-        <div style="display:flex; gap:10px;">
-            <button class="btn btn-sync" onclick="toggleSync()">☁️ Settings & Sync</button>
-            <button class="btn btn-zip" onclick="exportToZip()">📦 Download ZIP</button>
+        <div class="btn-group">
+            <button class="btn" onclick="toggleSync()"><span>⚙️</span> Settings</button>
+            <button class="btn" onclick="exportToZip()"><span>📦</span> ZIP Export</button>
         </div>
 
-        <div id="warning-toast">⚠️ Legacy Load: Site reconstructed from HTML (no project data found).</div>
+        <div class="btn-group">
+            <select class="device-selector" onchange="editor.setDevice(this.value)">
+                <option value="Desktop">🖥️ Desktop</option>
+                <option value="Tablet">📱 Tablet</option>
+                <option value="Mobile portrait">📲 Mobile</option>
+            </select>
+        </div>
 
-        <div style="display:flex; gap:10px; align-items: center;">
-            <input type="text" id="site-name" placeholder="Project Name" style="width:140px; margin:0; height:28px;">
-            <button class="btn btn-sync" onclick="publishSite()">Publish to GitHub</button>
+        <div class="btn-group">
+            <input type="text" id="site-name" placeholder="Project Name" style="width:150px;">
+            <button class="btn btn-primary" onclick="publishSite()">🚀 Publish</button>
         </div>
     </header>
 
-    <div id="popup-toast">⚠️ Pop-up Blocked? Please allow pop-ups to sign in with GitHub.</div>
-
     <div id="sync-panel">
-        <h3 style="font-size:11px; color:#666; text-transform:uppercase; letter-spacing:1px; margin-bottom:15px;">GitHub Connectivity</h3>
-        <button class="btn btn-sync" style="width:100%" id="auth-btn" onclick="connectGitHub()">Connect GitHub Account</button>
+        <h2 style="font-size:16px; margin:0 0 20px 0; color: var(--accent);">PROJECT CONTROL</h2>
+        
+        <button class="btn btn-primary" style="width:100%; justify-content:center; margin-bottom:15px;" id="auth-btn" onclick="connectGitHub()">Connect GitHub</button>
         
         <div id="repo-ui" style="display:none;">
-            <label style="font-size:11px; color:#888;">SELECT REPOSITORY</label>
             <select id="repo-list"></select>
-            <button class="btn btn-sync" style="width:100%" onclick="importProject()">📂 Load Selected Project</button>
+            <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="importProject()">📂 Load Project</button>
+        </div>
+
+        <div class="global-style-section">
+            <h3 style="font-size:12px; color:#888; text-transform:uppercase;">Global Styles</h3>
+            <label style="font-size:11px; display:block; margin:10px 0 5px;">Brand Color</label>
+            <input type="color" id="global-color" value="#3b82f6" onchange="updateGlobalStyle()">
             
-            <div style="margin-top:40px; border-top:1px solid #333; padding-top:20px;">
-                <h3 style="font-size:11px; color:#666; text-transform:uppercase;">Local Actions</h3>
-                <button class="btn btn-flat" style="width:100%" onclick="resetCanvas()">✨ Clear Canvas</button>
-                <button class="btn btn-danger" style="width:100%" onclick="deleteCurrentProject()">Delete Remote Repository</button>
-            </div>
+            <label style="font-size:11px; display:block; margin:15px 0 5px;">Primary Font</label>
+            <select id="global-font" onchange="updateGlobalStyle()" style="background:#000; color:white; width:100%; padding:8px; border-radius:6px; border:1px solid var(--border);">
+                <option value="Inter, sans-serif">Inter (Modern)</option>
+                <option value="'Playfair Display', serif">Playfair (Elegant)</option>
+                <option value="'Roboto Mono', monospace">Roboto (Tech)</option>
+                <option value="system-ui">System Default</option>
+            </select>
+        </div>
+
+        <div style="margin-top:auto; padding-top:50px;">
+            <button class="btn btn-flat" style="width:100%; justify-content:center; color:#ff4444;" onclick="resetCanvas()">Wipe Canvas</button>
         </div>
     </div>
 
@@ -94,117 +112,81 @@
     <script type="module">
         import { Octokit } from "https://cdn.skypack.dev/@octokit/rest";
 
+        // Initialize Firebase
         const firebaseConfig = { apiKey: "AIzaSyBtcrbgIblZlg5mqGJPaGTFctCoTPrY-WQ", authDomain: "web-maker-c6261.firebaseapp.com", projectId: "web-maker-c6261" };
         firebase.initializeApp(firebaseConfig);
 
         const editor = grapesjs.init({
             container: '#gjs',
             height: '100%',
-            fromElement: true,
             storageManager: false,
-            canvas: { styles: ['https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'] },
+            canvas: { 
+                styles: [
+                    'https://fonts.googleapis.com/css2?family=Inter&family=Playfair+Display&family=Roboto+Mono&display=swap'
+                ] 
+            },
             deviceManager: {
                 devices: [
                     { name: 'Desktop', width: '' },
                     { name: 'Tablet', width: '768px', widthMedia: '992px' },
-                    { name: 'Mobile', width: '320px', widthMedia: '480px' }
+                    { name: 'Mobile portrait', width: '320px', widthMedia: '480px' }
                 ]
             },
             blockManager: {
                 blocks: [
-                    { id: 'section', label: 'Section', category: 'Layout', content: '<section style="padding:50px; text-align:center;"><h2>New Section</h2></section>' },
-                    { id: 'grid-2', label: '2 Columns', category: 'Layout', content: '<div style="display:flex;"><div style="flex:1; padding:10px;">Col 1</div><div style="flex:1; padding:10px;">Col 2</div></div>' },
-                    { id: 'text', label: 'Text', category: 'Basic', content: '<p>Edit this text</p>' },
+                    { id: 'section', label: 'Section', category: 'Layout', content: '<section style="padding:50px 0;"><h2>New Section</h2></section>' },
+                    { id: 'grid-2', label: '2 Cols', category: 'Layout', content: '<div style="display:flex; flex-wrap:wrap; gap:20px; padding:20px;"><div style="flex:1; min-width:300px; min-height:100px; padding:20px; border:1px dashed #ccc;">Col 1</div><div style="flex:1; min-width:300px; min-height:100px; padding:20px; border:1px dashed #ccc;">Col 2</div></div>' },
+                    { id: 'text', label: 'Text', category: 'Basic', content: '<div>Edit your text here</div>' },
                     { id: 'image', label: 'Image', category: 'Basic', content: { type: 'image' } },
-                    { id: 'video', label: 'Video', category: 'Basic', content: { type: 'video' } },
                     { 
                         id: 'embed', 
-                        label: '<b>Code Embed</b>', 
+                        label: '<b>Embed Code</b>', 
                         category: 'Advanced', 
                         content: {
                             type: 'default',
-                            content: '<div style="padding:15px; border:1px dashed #444; color:#888; font-size:12px;">Custom Code Embed Box</div>',
-                            traits: [{ type: 'textarea', label: 'HTML/JS Code', name: 'custom-code' }]
-                        }
-                    },
-                    { 
-                        id: 'paypal-product', 
-                        label: 'PayPal Item', 
-                        category: 'Commerce', 
-                        content: {
-                            type: 'paypal-card',
-                            attributes: { 'data-price': '20.00', 'data-item': 'My Product' }
+                            content: '<div style="padding:20px; border:1px dashed #666; text-align:center;">Custom Code Preview</div>',
+                            traits: [{ type: 'textarea', label: 'Paste Code Here', name: 'custom-code' }]
                         }
                     }
                 ]
             }
         });
 
-        // PayPal Component Logic
-        editor.DomComponents.addType('paypal-card', {
-            model: {
-                defaults: {
-                    traits: [
-                        { type: 'text', label: 'Product Name', name: 'data-item' },
-                        { type: 'number', label: 'Price ($)', name: 'data-price' }
-                    ],
-                    components: `
-                        <div class="paypal-container" style="padding:20px; border:1px solid #eee; border-radius:8px; background:#fff; color:#111; text-align:center; max-width:260px; margin:auto;">
-                            <h3 class="p-name">Product Name</h3>
-                            <p style="font-size:1.5rem; font-weight:bold; margin:10px 0;">$<span class="p-price">20.00</span></p>
-                            <div class="paypal-slot" style="background:#ffc439; padding:10px; border-radius:4px; font-weight:bold; cursor:default;">PayPal Checkout</div>
-                        </div>`
-                },
-                init() { this.on('change:attributes:data-item change:attributes:data-price', this.updateUI); },
-                updateUI() {
-                    const attr = this.getAttributes();
-                    const el = this.getEl();
-                    if(el) {
-                        el.querySelector('.p-name').innerText = attr['data-item'];
-                        el.querySelector('.p-price').innerText = attr['data-price'];
-                    }
-                }
-            }
-        });
+        // Update Global Styles Logic
+        window.updateGlobalStyle = () => {
+            const color = document.getElementById('global-color').value;
+            const font = document.getElementById('global-font').value;
+            const css = `body { font-family: ${font} !important; color: ${color}; } h1, h2, h3 { color: ${color}; }`;
+            editor.CssComposer.addRules(css);
+        };
 
-        // UI & ZIP EXPORT
-        window.toggleSync = () => document.getElementById('sync-panel').classList.toggle('open');
-        window.resetCanvas = () => confirm("Wipe everything and start fresh?") && editor.DomComponents.clear();
-
+        // Export ZIP
         window.exportToZip = async () => {
             const zip = new JSZip();
-            const name = document.getElementById('site-name').value || "site-export";
             const html = `<!DOCTYPE html><html><head><style>${editor.getCss()}</style></head><body>${editor.getHtml()}</body></html>`;
             zip.file("index.html", html);
             zip.file("project-data.json", JSON.stringify(editor.getProjectData()));
             const content = await zip.generateAsync({type:"blob"});
             const link = document.createElement("a");
             link.href = URL.createObjectURL(content);
-            link.download = `${name}.zip`;
+            link.download = (document.getElementById('site-name').value || "export") + ".zip";
             link.click();
         };
 
-        // GITHUB CLOUD LOGIC
+        // UI & GitHub Sync Logic (Consolidated)
+        window.toggleSync = () => document.getElementById('sync-panel').classList.toggle('open');
+        window.resetCanvas = () => confirm("Clear work?") && editor.DomComponents.clear();
+
         let githubToken = "", githubUser = "";
         window.connectGitHub = async () => {
-            const toast = document.getElementById('popup-toast');
-            const timer = setTimeout(() => toast.style.display = 'block', 1500);
             const provider = new firebase.auth.GithubAuthProvider();
-            provider.addScope('repo').addScope('delete_repo');
-            
-            try {
-                const result = await firebase.auth().signInWithPopup(provider);
-                clearTimeout(timer); toast.style.display = 'none';
-                githubToken = result.credential.accessToken;
-                githubUser = result.additionalUserInfo.username;
-                document.getElementById('auth-btn').style.display = 'none';
-                document.getElementById('repo-ui').style.display = 'block';
-                fetchRepos();
-            } catch (e) {
-                clearTimeout(timer);
-                if (e.code === 'auth/popup-blocked') toast.style.display = 'block';
-                else alert(e.message);
-            }
+            provider.addScope('repo');
+            const result = await firebase.auth().signInWithPopup(provider);
+            githubToken = result.credential.accessToken;
+            githubUser = result.additionalUserInfo.username;
+            document.getElementById('auth-btn').style.display = 'none';
+            document.getElementById('repo-ui').style.display = 'block';
+            fetchRepos();
         };
 
         async function fetchRepos() {
@@ -213,52 +195,34 @@
             document.getElementById('repo-list').innerHTML = repos.data.map(r => `<option value="${r.name}">${r.name}</option>`).join('');
         }
 
-        window.importProject = async () => {
-            const repo = document.getElementById('repo-list').value;
-            const octo = new Octokit({ auth: githubToken });
-            const warn = document.getElementById('warning-toast');
-            warn.style.display = 'none';
-
-            try {
-                const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: 'project-data.json' });
-                editor.loadProjectData(JSON.parse(atob(res.data.content)));
-            } catch(e) {
-                try {
-                    const resHtml = await octo.repos.getContent({ owner: githubUser, repo: repo, path: 'index.html' });
-                    editor.setComponents(atob(resHtml.data.content));
-                    warn.style.display = 'block';
-                } catch(e2) { alert("Repository appears empty."); }
-            }
-            document.getElementById('site-name').value = repo;
-            toggleSync();
-        };
-
         window.publishSite = async () => {
             const name = document.getElementById('site-name').value;
-            if(!name || !githubToken) return alert("Please login and name your project.");
+            if(!name || !githubToken) return alert("Setup Project Name/GitHub first");
             const octo = new Octokit({ auth: githubToken });
-            const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${editor.getCss()}</style></head><body>${editor.getHtml()}</body></html>`;
-            
+            const html = `<!DOCTYPE html><html><head><style>${editor.getCss()}</style></head><body>${editor.getHtml()}</body></html>`;
             try {
-                try { await octo.request('POST /user/repos', { name: name, auto_init: true }); } catch (e) {}
+                try { await octo.request('POST /user/repos', { name: name, auto_init: true }); } catch(e){}
                 await uploadFile(octo, name, 'project-data.json', JSON.stringify(editor.getProjectData()));
                 await uploadFile(octo, name, 'index.html', html);
-                alert("Successfully published to GitHub!");
+                alert("Site Published Successfully!");
             } catch(e) { alert(e.message); }
         };
 
         async function uploadFile(octo, repo, path, content) {
             let sha = null;
             try { const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: path }); sha = res.data.sha; } catch (e) {}
-            return octo.repos.createOrUpdateFileContents({ owner: githubUser, repo: repo, path: path, message: 'Sync via OpenBuilder', content: btoa(unescape(encodeURIComponent(content))), sha });
+            return octo.repos.createOrUpdateFileContents({ owner: githubUser, repo: repo, path: path, message: 'OpenBuilder Sync', content: btoa(unescape(encodeURIComponent(content))), sha });
         }
 
-        window.deleteCurrentProject = async () => {
-            const repo = document.getElementById('site-name').value;
-            if(!repo || !confirm(`Permanently delete ${repo} from GitHub?`)) return;
+        window.importProject = async () => {
+            const repo = document.getElementById('repo-list').value;
             const octo = new Octokit({ auth: githubToken });
-            await octo.repos.delete({ owner: githubUser, repo: repo });
-            location.reload();
+            try {
+                const res = await octo.repos.getContent({ owner: githubUser, repo: repo, path: 'project-data.json' });
+                editor.loadProjectData(JSON.parse(atob(res.data.content)));
+                document.getElementById('site-name').value = repo;
+                toggleSync();
+            } catch(e) { alert("Error loading project data."); }
         };
     </script>
 </body>
