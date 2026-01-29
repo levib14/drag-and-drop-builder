@@ -2,63 +2,67 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>OpenBuilder | Pro-Persistence</title>
+    <title>OpenBuilder | Pro Suite</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
     <style>
-        body, html { height: 100%; margin: 0; overflow: hidden; background: #080808; color: #fff; font-family: -apple-system, sans-serif; }
+        :root { --accent: #3b82f6; --bg: #0a0a0a; --panel: #141414; --input: #2a2a2a; --text: #ffffff; }
+        body, html { height: 100%; margin: 0; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; }
         
-        /* Monochromatic UI */
-        .gjs-one-bg { background-color: #0d0d0d !important; }
-        .gjs-two-bg { background-color: #121212 !important; }
-        .gjs-three-bg { background-color: #1a1a1a !important; }
-        .gjs-four-color { color: #fff !important; }
-        .gjs-pn-buttons { background-color: #0d0d0d !important; border-bottom: 1px solid #222 !important; }
-        
-        /* Sidebar Styles */
-        #sidebar {
-            position: absolute; top: 40px; left: 0; width: 260px; bottom: 0;
-            background: #0d0d0d; border-right: 1px solid #222; z-index: 1005; 
-            display: none; padding: 20px; box-sizing: border-box;
+        /* HIGH CONTRAST THEME FOR INPUTS */
+        .gjs-one-bg { background-color: var(--bg) !important; }
+        .gjs-two-bg { background-color: var(--panel) !important; }
+        .gjs-three-bg { background-color: #1e1e1e !important; }
+        .gjs-field, .gjs-sm-field, .gjs-clm-field, select, input, textarea { 
+            background-color: var(--input) !important; 
+            color: #ffffff !important; 
+            border: 1px solid #444 !important;
+            padding: 5px !important;
         }
-        .item-row { 
-            padding: 12px; color: #666; cursor: pointer; border-radius: 4px;
-            margin-bottom: 5px; font-size: 12px; transition: 0.2s; border: 1px solid transparent;
-        }
-        .item-row:hover, .item-row.active { background: #1a1a1a; color: #3b82f6; border-color: #333; }
-        
-        /* Status Bubble */
-        #status-bubble {
-            position: fixed; bottom: 25px; right: 25px; padding: 12px 24px;
-            background: #3b82f6; color: white; border-radius: 4px; font-size: 11px;
-            font-weight: 800; display: none; z-index: 10000; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            text-transform: uppercase; letter-spacing: 1px;
+        .gjs-sm-label, .gjs-label { color: #ccc !important; font-weight: 500 !important; }
+        .gjs-four-color { color: var(--accent) !important; }
+
+        /* Notification Toast */
+        #toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #111; border: 1px solid var(--accent); color: white;
+            padding: 15px 30px; border-radius: 4px; font-size: 12px; font-weight: bold;
+            display: none; z-index: 10001; box-shadow: 0 10px 40px rgba(0,0,0,0.9);
         }
 
-        .action-btn { width: 100%; margin-top: 10px; border: none; padding: 10px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 10px; }
-        .btn-main { background: #fff; color: #000; }
-        .btn-sec { background: #222; color: #fff; border: 1px solid #444; }
+        /* Sidebar UI */
+        #sidebar {
+            position: absolute; top: 40px; left: 0; width: 280px; bottom: 0;
+            background: #0d0d0d; border-right: 1px solid #222; z-index: 1005; 
+            display: none; padding: 25px; box-sizing: border-box; overflow-y: auto;
+        }
+        .nav-item { 
+            padding: 12px; color: #777; cursor: pointer; border-radius: 4px;
+            margin-bottom: 5px; font-size: 12px; display: flex; justify-content: space-between; border: 1px solid transparent;
+        }
+        .nav-item:hover { border-color: #333; color: #fff; }
+        .nav-item.active { background: #1a1a1a; color: var(--accent); font-weight: bold; border-color: var(--accent); }
+        
+        .sidebar-label { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 1.5px; margin: 25px 0 10px; display: block; }
+        .sidebar-input { width: 100%; background: #000; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 4px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-    <div id="status-bubble">Syncing...</div>
+    <div id="toast">Ready</div>
 
     <div id="sidebar">
-        <span style="font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 2px;">Project Storage</span>
-        <input type="text" id="repo-input" placeholder="GitHub Repository Name" style="width:100%; background:#000; border:1px solid #333; color:white; padding:10px; margin-top:10px; border-radius:4px; font-size:12px;">
-        <button onclick="importProject()" class="action-btn btn-sec">↓ IMPORT PROJECT JSON</button>
+        <span class="sidebar-label">Project Control</span>
+        <input type="text" id="repo-name" class="sidebar-input" placeholder="Repository Name">
+        <button onclick="importProject()" style="width:100%; background:#222; color:#fff; border:1px solid #444; padding:10px; cursor:pointer; font-weight:bold; font-size:10px; border-radius:4px;">↓ IMPORT SAVED DATA</button>
 
-        <hr style="border:0; border-top:1px solid #222; margin:25px 0;">
-        
-        <span style="font-size: 9px; color: #444; text-transform: uppercase; letter-spacing: 2px;">Site Pages</span>
-        <div id="page-list" style="margin-top:15px;"></div>
-        <button onclick="addPage()" class="action-btn btn-main">+ NEW PAGE</button>
+        <span class="sidebar-label">Pages</span>
+        <div id="page-list"></div>
+        <button onclick="createNewPage()" style="width: 100%; margin-top: 15px; background: #fff; color: #000; border: none; padding: 12px; cursor: pointer; font-weight: 800; border-radius: 4px; font-size: 10px;">+ NEW PAGE</button>
     </div>
 
     <div id="gjs"></div>
@@ -78,22 +82,9 @@
             canvas: { styles: ['https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap'] },
             blockManager: {
                 blocks: [
-                    {
-                        id: 'text', label: 'Draggable Text', category: 'Basic',
-                        content: { type: 'text', content: 'Double click to edit', style: { position: 'absolute', top: '100px', left: '100px', color: '#fff' } }
-                    },
-                    {
-                        id: 'image', label: 'Draggable Image', category: 'Basic',
-                        content: { type: 'image', style: { position: 'absolute', top: '150px', left: '150px', width: '300px' } }
-                    },
-                    {
-                        id: 'btn', label: 'Action Button', category: 'General',
-                        content: { 
-                            tagName: 'a', content: 'Explore', 
-                            style: { position: 'absolute', top: '250px', left: '100px', padding: '14px 28px', background: '#3b82f6', color: '#fff', 'text-decoration': 'none', 'border-radius': '4px', 'font-weight': 'bold' },
-                            traits: ['href'] 
-                        }
-                    }
+                    { id: 'txt', label: 'Text', category: 'Basic', content: { type: 'text', content: 'Edit me', style: { position: 'absolute', top: '50px', left: '50px', color: '#fff' } } },
+                    { id: 'img', label: 'Image', category: 'Basic', content: { type: 'image', style: { position: 'absolute', top: '100px', left: '100px', width: '250px' } } },
+                    { id: 'btn', label: 'Link', category: 'Basic', content: { tagName: 'a', content: 'Explore', style: { position: 'absolute', top: '200px', left: '100px', padding: '10px 20px', background: '#3b82f6', color: '#fff', 'text-decoration': 'none', 'border-radius': '4px' }, traits: ['href'] } }
                 ]
             }
         });
@@ -101,138 +92,107 @@
         const pm = editor.Pages;
         const pn = editor.Panels;
 
-        // Toolbar Buttons
-        pn.addButton('options', [
-            {
-                id: 'sidebar-toggle', className: 'fa fa-bars',
-                command: () => {
-                    const sb = document.getElementById('sidebar');
-                    sb.style.display = sb.style.display === 'none' ? 'block' : 'none';
-                    refreshPageList();
-                }
-            },
-            { id: 'undo', className: 'fa fa-undo', command: 'core:undo' },
-            { id: 'redo', className: 'fa fa-repeat', command: 'core:redo' },
-            { id: 'push-gh', className: 'fa fa-paper-plane', command: () => silentPush(), attributes: { title: 'Save & Publish' } }
-        ]);
-
-        window.addPage = () => {
-            const name = prompt("Page Filename:");
-            if (name) {
-                pm.add({ id: name, component: `<div style="height:100vh; background:#080808; position:relative;"><h1>${name}</h1></div>` });
-                refreshPageList();
-            }
+        window.notify = (msg, persist = false) => {
+            const t = document.getElementById('toast');
+            t.innerText = msg; t.style.display = 'block';
+            if(!persist) setTimeout(() => t.style.display = 'none', 4000);
         };
 
-        const refreshPageList = () => {
-            const list = document.getElementById('page-list');
-            list.innerHTML = '';
+        pn.addButton('options', [
+            { id: 'sidebar-tgl', className: 'fa fa-bars', command: () => { const s = document.getElementById('sidebar'); s.style.display = s.style.display === 'none' ? 'block' : 'none'; refreshUI(); } },
+            { id: 'undo', className: 'fa fa-undo', command: 'core:undo' },
+            { id: 'redo', className: 'fa fa-repeat', command: 'core:redo' },
+            { id: 'deploy', className: 'fa fa-rocket', command: () => pushToGitHub() }
+        ]);
+
+        window.createNewPage = () => {
+            const name = prompt("Page Name:");
+            if (name) { pm.add({ id: name, component: `<div style="height:100vh; background:#000; position:relative;"><h1>${name} Page</h1></div>` }); refreshUI(); }
+        };
+
+        const refreshUI = () => {
+            const list = document.getElementById('page-list'); list.innerHTML = '';
             pm.getAll().forEach(page => {
-                const row = document.createElement('div');
-                row.className = `item-row ${page.id === pm.getSelected().id ? 'active' : ''}`;
-                row.innerHTML = `<span>${page.id}.html</span>`;
-                row.onclick = () => { pm.select(page.id); refreshPageList(); };
-                list.appendChild(row);
+                const item = document.createElement('div');
+                item.className = `nav-item ${page.id === pm.getSelected().id ? 'active' : ''}`;
+                item.innerHTML = `<span>${page.id}.html</span>`;
+                item.onclick = () => { pm.select(page.id); refreshUI(); };
+                list.appendChild(item);
             });
         };
 
-        let ghToken = "", ghUser = "";
+        let token = "", user = "";
 
-        // --- THE "SILENT PUSH" & PROJECT JSON ENGINE ---
-        const silentPush = async () => {
-            const repo = document.getElementById('repo-input').value;
-            if (!repo) return alert("Please enter a Repository Name in the sidebar.");
+        const pushToGitHub = async () => {
+            const repo = document.getElementById('repo-name').value;
+            if (!repo) return notify("⚠️ Enter Repository Name!");
 
-            const status = document.getElementById('status-bubble');
-            status.innerText = "Pushing to GitHub...";
-            status.style.display = "block";
+            notify("🚀 Uploading to GitHub...", true);
 
-            if (!ghToken) {
-                const provider = new firebase.auth.GithubAuthProvider();
-                provider.addScope('repo');
-                const result = await firebase.auth().signInWithPopup(provider);
-                ghToken = result.credential.accessToken;
-                ghUser = result.additionalUserInfo.username;
+            if (!token) {
+                const result = await firebase.auth().signInWithPopup(new firebase.auth.GithubAuthProvider());
+                token = result.credential.accessToken;
+                user = result.additionalUserInfo.username;
             }
 
-            const octo = new Octokit({ auth: ghToken });
-
+            const octo = new Octokit({ auth: token });
             try {
-                // Ensure Repo
                 try { await octo.request('POST /user/repos', { name: repo, auto_init: true }); } catch(e) {}
 
-                // 1. UPLOAD PROJECT JSON (The Save State)
-                const projectData = JSON.stringify(editor.getProjectData());
-                await upload(octo, repo, 'project-data.json', projectData);
+                // 1. Save Project JSON
+                await sync(octo, repo, 'project-data.json', JSON.stringify(editor.getProjectData()));
 
-                // 2. UPLOAD ALL PAGES
-                const pages = pm.getAll();
-                for (const page of pages) {
-                    pm.select(page.id);
+                // 2. Save Pages
+                const all = pm.getAll();
+                for (const p of all) {
+                    pm.select(p.id);
                     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${editor.getCss()}</style></head><body>${editor.getHtml()}</body></html>`;
-                    
-                    // Logic: First page created or "index" is index.html
-                    const isIndex = (page.id === 'index' || pages.indexOf(page) === 0);
-                    const filename = isIndex ? 'index.html' : `${page.id}.html`;
-                    
-                    await upload(octo, repo, filename, html);
+                    const filename = (p.id === 'index' || all.indexOf(p) === 0) ? 'index.html' : `${p.id}.html`;
+                    await sync(octo, repo, filename, html);
                 }
 
-                status.innerText = "Project Saved & Published!";
-                setTimeout(() => status.style.display = "none", 3000);
-            } catch (err) {
-                status.innerText = "Push Failed!";
-                console.error(err);
-            }
+                const liveUrl = `https://${user}.github.io/${repo}/`;
+                pingSite(liveUrl);
+            } catch (err) { notify("❌ Error: " + err.message); }
         };
 
-        // --- IMPORT ENGINE ---
+        const pingSite = (url) => {
+            notify("🛰️ Waiting for GitHub to build site...", true);
+            const checker = setInterval(async () => {
+                try {
+                    const response = await fetch(url, { mode: 'no-cors' });
+                    // Since GitHub returns 404 until it's ready, we clear when we get a hit
+                    clearInterval(checker);
+                    notify("✅ SITE IS LIVE!");
+                    window.open(url, '_blank');
+                } catch (e) { /* Still 404/Building */ }
+            }, 5000);
+        };
+
         window.importProject = async () => {
-            const repo = document.getElementById('repo-input').value;
-            if (!repo) return alert("Enter the Repository Name to import from.");
-
-            const status = document.getElementById('status-bubble');
-            status.innerText = "Importing JSON...";
-            status.style.display = "block";
-
-            if (!ghToken) {
-                const provider = new firebase.auth.GithubAuthProvider();
-                provider.addScope('repo');
-                const result = await firebase.auth().signInWithPopup(provider);
-                ghToken = result.credential.accessToken;
-                ghUser = result.additionalUserInfo.username;
-            }
-
-            const octo = new Octokit({ auth: ghToken });
-
+            const repo = document.getElementById('repo-name').value;
+            if (!repo) return notify("Enter Repo Name!");
+            notify("📥 Importing data...", true);
+            if (!token) { /* Sign in logic */ }
+            const octo = new Octokit({ auth: token });
             try {
-                const res = await octo.repos.getContent({ owner: ghUser, repo: repo, path: 'project-data.json' });
-                const jsonContent = atob(res.data.content);
-                editor.loadProjectData(JSON.parse(jsonContent));
-                
-                status.innerText = "Import Successful!";
-                refreshPageList();
-                setTimeout(() => status.style.display = "none", 3000);
-            } catch (e) {
-                status.innerText = "No Save Data Found.";
-                setTimeout(() => status.style.display = "none", 3000);
-            }
+                const res = await octo.repos.getContent({ owner: user, repo: repo, path: 'project-data.json' });
+                editor.loadProjectData(JSON.parse(atob(res.data.content)));
+                notify("✅ Import Success!");
+                refreshUI();
+            } catch (e) { notify("⚠️ Save-file not found."); }
         };
 
-        async function upload(octo, repo, path, content) {
+        async function sync(octo, repo, path, content) {
             let sha = null;
-            try { const res = await octo.repos.getContent({ owner: ghUser, repo: repo, path: path }); sha = res.data.sha; } catch(e) {}
+            try { const res = await octo.repos.getContent({ owner: user, repo: repo, path: path }); sha = res.data.sha; } catch(e) {}
             return octo.repos.createOrUpdateFileContents({
-                owner: ghUser, repo: repo, path: path,
-                message: 'OpenBuilder Auto-Sync',
-                content: btoa(unescape(encodeURIComponent(content))),
-                sha: sha
+                owner: user, repo: repo, path: path, message: 'Sync',
+                content: btoa(unescape(encodeURIComponent(content))), sha: sha
             });
         }
 
-        editor.on('load', () => {
-            if (!pm.getSelected()) pm.add({ id: 'index', component: '<div style="height:100vh; background:#080808; position:relative;"></div>' });
-        });
+        editor.on('load', () => { if (!pm.getSelected()) pm.add({ id: 'index', component: '<div style="height:100vh; background:#000; position:relative;"></div>' }); });
     </script>
 </body>
 </html>
