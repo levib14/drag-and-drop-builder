@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>OpenBuilder | Final Suite</title>
+    <title>Apostle | Build Your Church Website</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
@@ -10,74 +10,78 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
     <style>
-        :root { --blue: #3b82f6; --dark: #000; --panel: #111; --border: #333; }
-        body, html { height: 100%; margin: 0; overflow: hidden; background: var(--dark); font-family: sans-serif; color: #fff; }
+        :root { --gold: #d4af37; --slate: #1a1a1a; --dark: #0a0a0a; --blue: #3b82f6; }
+        body, html { height: 100%; margin: 0; background: var(--dark); font-family: 'Inter', sans-serif; color: #fff; overflow: hidden; }
 
-        /* HIGH-CONTRAST UI FIX */
-        .gjs-one-bg { background-color: var(--dark) !important; }
-        .gjs-two-bg { background-color: var(--panel) !important; }
-        .gjs-three-bg { background-color: #222 !important; }
-        input, select, textarea, .gjs-field, .gjs-sm-field { 
-            background-color: #252525 !important; color: #fff !important; border: 1px solid var(--border) !important;
-            padding: 8px !important;
+        /* LANDING PAGE */
+        #landing-page {
+            position: absolute; inset: 0; z-index: 2000; background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+        }
+        .hero-title { font-size: 72px; font-weight: 900; letter-spacing: -3px; margin: 0; background: linear-gradient(to right, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero-sub { color: #888; font-size: 20px; margin-bottom: 40px; max-width: 600px; line-height: 1.6; }
+        .launch-btn { background: var(--gold); color: #000; padding: 18px 45px; border-radius: 4px; font-weight: 800; border: none; cursor: pointer; font-size: 14px; letter-spacing: 1px; transition: 0.3s; }
+        .launch-btn:hover { background: #fff; transform: translateY(-2px); }
+
+        /* BUILDER INTERFACE */
+        #builder-container { display: none; height: 100%; flex-direction: column; }
+        #top-bar { height: 60px; background: #000; border-bottom: 1px solid #333; display: flex; align-items: center; padding: 0 20px; gap: 20px; }
+        
+        /* Device Toggle */
+        .device-toggle { display: flex; background: #111; border: 1px solid #333; border-radius: 4px; padding: 2px; }
+        .device-btn { padding: 6px 12px; border: none; background: none; color: #555; cursor: pointer; }
+        .device-btn.active { color: var(--gold); background: #222; border-radius: 2px; }
+
+        /* HIGH VISIBILITY GJS OVERRIDES */
+        .gjs-one-bg { background-color: #000 !important; }
+        .gjs-two-bg { background-color: #111 !important; }
+        .gjs-field, .gjs-sm-field, select, input { 
+            background-color: #252525 !important; color: #fff !important; border: 1px solid #444 !important; padding: 8px !important; 
         }
 
-        /* Top Bar Layout */
-        #top-bar {
-            height: 55px; background: var(--panel); border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; padding: 0 15px; gap: 20px;
-        }
+        #tab-list { display: flex; gap: 8px; }
+        .tab-btn { padding: 8px 16px; background: #111; color: #666; border: 1px solid #333; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .tab-btn.active { border-color: var(--gold); color: var(--gold); }
 
-        /* Device Switcher */
-        .device-toggle {
-            display: flex; background: #000; border: 1px solid var(--border); border-radius: 6px; padding: 2px;
-        }
-        .device-btn {
-            padding: 6px 12px; border: none; background: none; color: #555; cursor: pointer; border-radius: 4px; transition: 0.2s;
-        }
-        .device-btn.active { background: #222; color: var(--blue); }
+        #deploy-wrap { margin-left: auto; display: flex; gap: 10px; }
+        .repo-in { background: #000; border: 1px solid #444; color: #fff; padding: 8px 12px; border-radius: 4px; width: 200px; font-size: 12px; }
+        .repo-in:focus { border-color: var(--gold); outline: none; }
 
-        /* Page Tabs */
-        #tab-list { display: flex; gap: 5px; }
-        .tab-btn { padding: 6px 12px; background: #1a1a1a; color: #666; border: 1px solid #333; border-radius: 4px; cursor: pointer; font-size: 11px; }
-        .tab-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
-
-        /* Deployment Section */
-        #deploy-section { margin-left: auto; display: flex; gap: 10px; align-items: center; }
-        .repo-input { background: #000; border: 1px solid var(--blue); color: #fff; padding: 8px; border-radius: 4px; width: 160px; font-size: 12px; }
-
-        #status-toast {
-            position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%);
-            background: var(--blue); color: white; padding: 15px 30px;
-            border-radius: 6px; font-weight: bold; z-index: 10000; display: none; text-align: center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-        }
-        #status-toast a { color: #fff; text-decoration: underline; font-size: 14px; }
+        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #222; border: 1px solid var(--gold); color: #fff; padding: 16px 32px; border-radius: 4px; font-weight: bold; z-index: 10000; display: none; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.9); }
+        #toast a { color: var(--gold); }
     </style>
 </head>
 <body>
 
-    <div id="status-toast">Ready</div>
-
-    <div id="top-bar">
-        <b style="color:var(--blue); font-size: 12px; letter-spacing: 1.5px;">OPENBUILDER</b>
-        
-        <div id="tab-list"></div>
-        <button onclick="addPage()" style="background:none; border:1px dashed #444; color:#444; cursor:pointer; font-size:18px; padding:0 10px; border-radius:4px;">+</button>
-
-        <div class="device-toggle">
-            <button class="device-btn active" id="btn-desktop" onclick="setDevice('Desktop')"><i class="fa fa-desktop"></i></button>
-            <button class="device-btn" id="btn-mobile" onclick="setDevice('Mobile')"><i class="fa fa-mobile-phone"></i></button>
-        </div>
-
-        <div id="deploy-section">
-            <input type="text" id="repo-id" class="repo-input" placeholder="Repository Name">
-            <button onclick="pushToGitHub()" style="background:var(--blue); color:white; border:none; padding:8px 16px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px;">PUSH TO GITHUB</button>
-            <button onclick="importProject()" style="background:#222; color:#888; border:1px solid #333; padding:8px 12px; border-radius:4px; cursor:pointer; font-size:11px;">IMPORT</button>
-        </div>
+    <div id="landing-page">
+        <div style="font-size: 11px; color: var(--gold); letter-spacing: 5px; margin-bottom: 15px; font-weight: 800;">ESTABLISHED IN FAITH</div>
+        <h1 class="hero-title">Apostle</h1>
+        <p class="hero-sub">The modern web standard for the local church. Effortlessly build a digital home that welcomes every seeker.</p>
+        <button class="launch-btn" onclick="launchBuilder()">OPEN THE BUILDER</button>
     </div>
 
-    <div id="gjs"></div>
+    <div id="builder-container">
+        <div id="top-bar">
+            <b style="color:var(--gold); font-size: 14px; letter-spacing: 2px;">APOSTLE</b>
+            
+            <div id="tab-list"></div>
+            <button onclick="addPage()" style="background:none; border:1px dashed #444; color:#555; cursor:pointer; padding:5px 12px; border-radius:4px;">+ NEW PAGE</button>
+
+            <div class="device-toggle">
+                <button class="device-btn active" id="btn-desktop" onclick="setDevice('Desktop')"><i class="fa fa-desktop"></i></button>
+                <button class="device-btn" id="btn-mobile" onclick="setDevice('Mobile')"><i class="fa fa-mobile-phone"></i></button>
+            </div>
+
+            <div id="deploy-wrap">
+                <input type="text" id="repo-id" class="repo-in" placeholder="Church Website Name (No spaces)">
+                <button onclick="pushToGitHub()" style="background:var(--gold); color:#000; border:none; padding:10px 20px; border-radius:4px; font-weight:800; cursor:pointer; font-size:11px;">PUBLISH TO WEB</button>
+                <button onclick="importProject()" style="background:#222; color:#fff; border:1px solid #333; padding:10px 15px; border-radius:4px; cursor:pointer; font-size:11px;">RESTORE SAVE</button>
+            </div>
+        </div>
+        <div id="gjs"></div>
+    </div>
+
+    <div id="toast">Ready</div>
 
     <script type="module">
         import { Octokit } from "https://cdn.skypack.dev/@octokit/rest";
@@ -87,33 +91,54 @@
 
         const editor = grapesjs.init({
             container: '#gjs',
-            height: 'calc(100% - 55px)',
+            height: '100%',
             storageManager: false,
             pageManager: true,
-            dragMode: 'absolute', // Free-roam dragging
+            dragMode: 'absolute',
             deviceManager: {
                 devices: [
                     { name: 'Desktop', width: '' },
                     { name: 'Mobile', width: '320px', widthMedia: '480px' }
                 ]
             },
-            canvas: { styles: ['https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap'] },
+            canvas: { styles: ['https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;700&display=swap'] },
             blockManager: {
                 blocks: [
-                    { id: 'b', label: 'Button', content: { tagName: 'a', content: 'ACTION BUTTON', style: { position: 'absolute', top: '100px', left: '100px', padding: '12px 24px', background: '#3b82f6', color: '#fff', 'text-decoration': 'none', 'border-radius': '4px', 'font-weight': 'bold' }, traits: ['href'] } },
-                    { id: 't', label: 'Text', content: { type: 'text', content: 'Double click to edit text', style: { position: 'absolute', top: '50px', left: '50px', color: '#fff', 'font-size': '18px' } } },
-                    { id: 'i', label: 'Image', content: { type: 'image', style: { position: 'absolute', top: '150px', left: '150px', width: '250px' } } }
+                    { id: 'hero', label: 'Church Hero', category: 'Ministry', content: `
+                        <div style="position:absolute; top:0; left:0; width:100%; height:500px; background:linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1515162305285-0293e4767cc2?q=80&w=1200'); background-size:cover; background-position:center; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                            <h1 style="color:#fff; font-family:Cinzel, serif; font-size:60px; margin:0;">Welcome Home</h1>
+                            <p style="color:var(--gold); letter-spacing:2px; font-weight:bold;">SUNDAYS AT 9:00AM & 11:00AM</p>
+                        </div>` 
+                    },
+                    { id: 'sermon', label: 'Latest Sermon', category: 'Ministry', content: `
+                        <div style="position:absolute; top:550px; left:10%; width:80%; height:300px; background:#111; border:1px solid #333; display:flex; align-items:center; padding:20px; border-radius:8px;">
+                            <div style="width:40%; height:100%; background:#222; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:40px; color:#444;"><i class="fa fa-play"></i></div>
+                            <div style="padding-left:40px;">
+                                <h2 style="color:var(--gold); font-family:Cinzel;">The Prodigal Returns</h2>
+                                <p style="color:#888;">Pastor John Smith • October 24, 2025</p>
+                                <a href="#" style="color:#fff; text-decoration:none; font-weight:bold; border-bottom:2px solid var(--gold); padding-bottom:5px;">WATCH SERMON</a>
+                            </div>
+                        </div>`
+                    },
+                    { id: 'give', label: 'Giving Card', category: 'Basic', content: { 
+                        tagName: 'div', style: { position: 'absolute', top: '900px', left: '100px', width: '300px', padding: '40px', background: '#fff', color: '#000', 'text-align': 'center', 'border-radius': '4px' },
+                        components: [
+                            { tagName: 'h3', content: 'Support Our Ministry', style: { 'font-family': 'Cinzel', 'margin-top': '0' } },
+                            { tagName: 'a', content: 'GIVE ONLINE', style: { display: 'inline-block', 'margin-top': '20px', padding: '12px 24px', background: '#000', color: '#fff', 'text-decoration': 'none', 'font-weight': 'bold' } }
+                        ]
+                    }},
+                    { id: 'txt', label: 'Scripture Text', category: 'Basic', content: { type: 'text', content: 'Enter Verse Here...', style: { position: 'absolute', top: '50px', left: '50px', color: '#fff', 'font-size': '20px', 'font-family': 'Cinzel' } } }
                 ]
             }
         });
 
         const pm = editor.Pages;
 
-        // Ensure every new item is absolute so it doesn't snap to corners
-        editor.on('component:add', (model) => {
-            const style = model.getStyle();
-            model.setStyle({ ...style, position: 'absolute' });
-        });
+        window.launchBuilder = () => {
+            document.getElementById('landing-page').style.display = 'none';
+            document.getElementById('builder-container').style.display = 'flex';
+            updateTabs();
+        };
 
         window.setDevice = (device) => {
             editor.setDevice(device);
@@ -122,13 +147,13 @@
         };
 
         window.notify = (msg, stay = false) => {
-            const t = document.getElementById('status-toast');
+            const t = document.getElementById('toast');
             t.innerHTML = msg; t.style.display = 'block';
             if(!stay) setTimeout(() => t.style.display = 'none', 5000);
         };
 
         window.addPage = () => {
-            const name = prompt("Enter Page Name (e.g., about):");
+            const name = prompt("Page Name (e.g. Sermons, Giving):");
             if(name) { pm.add({ id: name, component: '<div style="height:100vh; background:#000; position:relative;"></div>' }); updateTabs(); }
         };
 
@@ -138,19 +163,25 @@
             pm.getAll().forEach(p => {
                 const btn = document.createElement('button');
                 btn.className = `tab-btn ${p.id === pm.getSelected().id ? 'active' : ''}`;
-                btn.innerText = p.id + ".html";
+                btn.innerText = p.id.toUpperCase();
                 btn.onclick = () => { pm.select(p.id); updateTabs(); };
                 list.appendChild(btn);
             });
         };
 
+        // Ensure components stay absolute on drop
+        editor.on('component:add', (model) => {
+            const style = model.getStyle();
+            if (!style.position) model.setStyle({ ...style, position: 'absolute' });
+        });
+
         let token = "", user = "";
 
         window.pushToGitHub = async () => {
             const repo = document.getElementById('repo-id').value;
-            if(!repo) return notify("⚠️ Enter a Repository Name first!");
+            if(!repo) return notify("⚠️ Enter Church Website Name!");
+            notify("🛰️ Synchronizing with GitHub...", true);
 
-            notify("🛰️ Authenticating...", true);
             if(!token) {
                 const provider = new firebase.auth.GithubAuthProvider();
                 provider.addScope('repo');
@@ -161,56 +192,43 @@
 
             const octo = new Octokit({ auth: token });
             try {
-                // Create Repo if it doesn't exist
                 try { await octo.request('POST /user/repos', { name: repo, auto_init: true }); } catch(e){}
-                
-                // 1. Sync Project JSON (Save Data)
                 await sync(octo, repo, 'project-data.json', JSON.stringify(editor.getProjectData()));
-
-                // 2. Sync HTML Pages
                 const pages = pm.getAll();
                 for (const p of pages) {
                     pm.select(p.id);
-                    // Critical Fix: Wrapped body in relative container to prevent left-shooting elements
-                    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>${editor.getCss()}</style></head><body style="margin:0; position:relative; min-height:100vh; background:#000; overflow-x:hidden;">${editor.getHtml()}</body></html>`;
-                    
-                    // Force the first page in the list to be index.html
+                    const html = `<!DOCTYPE html><html><head><title>${p.id}</title><meta charset="utf-8"><style>${editor.getCss()}</style></head><body style="margin:0; position:relative; min-height:100vh; background:#000; color:#fff; overflow-x:hidden;">${editor.getHtml()}</body></html>`;
                     const filename = (p.id === 'index' || pages.indexOf(p) === 0) ? 'index.html' : `${p.id}.html`;
                     await sync(octo, repo, filename, html);
                 }
-
-                const repoUrl = `https://github.com/${user}/${repo}`;
-                notify(`✅ PUSHED TO GITHUB!<br><br><a href="${repoUrl}" target="_blank">View Repository</a><br><small>Go to Settings > Pages to go live</small>`, true);
-
+                notify(`✅ CHURCH SITE PUBLISHED!<br><br><a href="https://github.com/${user}/${repo}" target="_blank">Open GitHub Repository</a><br><small>Final Step: Go to Settings > Pages to launch.</small>`, true);
             } catch(e) { notify("❌ Error: " + e.message); }
         };
 
         window.importProject = async () => {
             const repo = document.getElementById('repo-id').value;
-            if(!repo) return notify("⚠️ Enter Repo Name to Import.");
-            notify("📥 Importing...", true);
-            if(!token) { /* Sign in logic as handled in push */ }
+            if(!repo) return notify("⚠️ Enter Repo Name to Restore.");
+            notify("📥 Restoring Data...", true);
             const octo = new Octokit({ auth: token });
             try {
                 const res = await octo.repos.getContent({ owner: user, repo: repo, path: 'project-data.json' });
                 editor.loadProjectData(JSON.parse(atob(res.data.content)));
-                notify("✅ Import Successful!");
+                notify("✅ Restore Successful!");
                 updateTabs();
-            } catch(e) { notify("⚠️ No save data found in this repo."); }
+            } catch(e) { notify("⚠️ No save data found."); }
         };
 
         async function sync(octo, repo, path, content) {
             let sha = null;
             try { const res = await octo.repos.getContent({ owner: user, repo: repo, path: path }); sha = res.data.sha; } catch(e) {}
             return octo.repos.createOrUpdateFileContents({
-                owner: user, repo: repo, path: path, message: 'OpenBuilder Auto-Sync',
+                owner: user, repo: repo, path: path, message: 'Apostle Sync',
                 content: btoa(unescape(encodeURIComponent(content))), sha: sha
             });
         }
 
         editor.on('load', () => {
             if(!pm.getSelected()) pm.add({ id: 'index', component: '<div style="height:100vh; background:#000; position:relative;"></div>' });
-            updateTabs();
         });
     </script>
 </body>
