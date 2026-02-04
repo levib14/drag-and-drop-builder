@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Apostle | Build Your Church Website</title>
+    <title>Apostle | Ministry Web Suite</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
@@ -10,72 +10,83 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
     <style>
-        :root { --gold: #d4af37; --slate: #1a1a1a; --dark: #0a0a0a; --blue: #3b82f6; }
-        body, html { height: 100%; margin: 0; background: var(--dark); font-family: 'Inter', sans-serif; color: #fff; overflow: hidden; }
+        :root { --gold: #d4af37; --bg: #050505; --panel: #111; --border: #222; --text-dim: #777; }
+        body, html { height: 100%; margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: #fff; overflow: hidden; }
 
-        /* LANDING PAGE */
+        /* LANDING PAGE & DASHBOARD */
         #landing-page {
-            position: absolute; inset: 0; z-index: 2000; background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
-            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+            position: absolute; inset: 0; z-index: 2000; background: var(--bg);
+            display: flex; flex-direction: column; align-items: center; overflow-y: auto; padding-bottom: 80px;
         }
-        .hero-title { font-size: 72px; font-weight: 900; letter-spacing: -3px; margin: 0; background: linear-gradient(to right, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .hero-sub { color: #888; font-size: 20px; margin-bottom: 40px; max-width: 600px; line-height: 1.6; }
-        .launch-btn { background: var(--gold); color: #000; padding: 18px 45px; border-radius: 4px; font-weight: 800; border: none; cursor: pointer; font-size: 14px; letter-spacing: 1px; transition: 0.3s; }
-        .launch-btn:hover { background: #fff; transform: translateY(-2px); }
+        .nav-header { width: 100%; max-width: 1100px; display: flex; justify-content: space-between; padding: 30px; align-items: center; }
+        .hero-title { font-size: clamp(40px, 10vw, 85px); font-weight: 800; letter-spacing: -4px; margin: 60px 0 20px 0; text-align: center; background: linear-gradient(to bottom, #fff, #444); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .launch-btn { background: #fff; color: #000; padding: 16px 40px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; transition: 0.3s; }
+        .launch-btn:hover { background: var(--gold); transform: scale(1.03); }
+
+        .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1000px; margin-top: 50px; }
+        .info-card { background: #0f0f0f; border: 1px solid #1a1a1a; padding: 25px; border-radius: 12px; transition: 0.2s; }
+        .info-card:hover { border-color: var(--gold); }
+        .info-card i { color: var(--gold); font-size: 20px; margin-bottom: 10px; }
+        .info-card h4 { margin: 10px 0; font-size: 16px; }
+        .info-card p { color: #555; font-size: 13px; line-height: 1.6; }
 
         /* BUILDER INTERFACE */
         #builder-container { display: none; height: 100%; flex-direction: column; }
-        #top-bar { height: 60px; background: #000; border-bottom: 1px solid #333; display: flex; align-items: center; padding: 0 20px; gap: 20px; }
+        #top-bar { height: 65px; background: #000; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 20px; }
         
-        /* Device Toggle */
-        .device-toggle { display: flex; background: #111; border: 1px solid #333; border-radius: 4px; padding: 2px; }
-        .device-btn { padding: 6px 12px; border: none; background: none; color: #555; cursor: pointer; }
-        .device-btn.active { color: var(--gold); background: #222; border-radius: 2px; }
-
-        /* HIGH VISIBILITY GJS OVERRIDES */
+        /* Tool Groups */
+        .tool-group { display: flex; background: #111; border: 1px solid #222; border-radius: 6px; padding: 3px; }
+        .tool-btn { padding: 8px 14px; border: none; background: none; color: #666; cursor: pointer; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .tool-btn.active { background: #222; color: var(--gold); }
+        
+        /* GJS UI High Contrast Overrides */
         .gjs-one-bg { background-color: #000 !important; }
-        .gjs-two-bg { background-color: #111 !important; }
-        .gjs-field, .gjs-sm-field, select, input { 
-            background-color: #252525 !important; color: #fff !important; border: 1px solid #444 !important; padding: 8px !important; 
-        }
+        .gjs-two-bg { background-color: #0d0d0d !important; }
+        .gjs-field { background-color: #1a1a1a !important; border: 1px solid #333 !important; color: #fff !important; }
 
-        #tab-list { display: flex; gap: 8px; }
-        .tab-btn { padding: 8px 16px; background: #111; color: #666; border: 1px solid #333; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
-        .tab-btn.active { border-color: var(--gold); color: var(--gold); }
-
-        #deploy-wrap { margin-left: auto; display: flex; gap: 10px; }
-        .repo-in { background: #000; border: 1px solid #444; color: #fff; padding: 8px 12px; border-radius: 4px; width: 200px; font-size: 12px; }
+        #deploy-controls { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+        .repo-in { background: #000; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 6px; width: 220px; font-size: 12px; }
         .repo-in:focus { border-color: var(--gold); outline: none; }
 
-        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #222; border: 1px solid var(--gold); color: #fff; padding: 16px 32px; border-radius: 4px; font-weight: bold; z-index: 10000; display: none; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.9); }
-        #toast a { color: var(--gold); }
+        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #fff; color: #000; padding: 15px 30px; border-radius: 8px; font-weight: 800; z-index: 10000; display: none; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
     </style>
 </head>
 <body>
 
     <div id="landing-page">
-        <div style="font-size: 11px; color: var(--gold); letter-spacing: 5px; margin-bottom: 15px; font-weight: 800;">ESTABLISHED IN FAITH</div>
-        <h1 class="hero-title">Apostle</h1>
-        <p class="hero-sub">The modern web standard for the local church. Effortlessly build a digital home that welcomes every seeker.</p>
-        <button class="launch-btn" onclick="launchBuilder()">OPEN THE BUILDER</button>
+        <div class="nav-header">
+            <b style="color:var(--gold); letter-spacing: 3px; font-size: 14px;">APOSTLE V3</b>
+            <button onclick="launchBuilder()" class="launch-btn" style="padding: 10px 20px;">LAUNCH EDITOR</button>
+        </div>
+
+        <h1 class="hero-title">The Digital Pulpit.</h1>
+        <p style="color:var(--text-dim); text-align:center; max-width: 600px; font-size: 18px;">Built specifically for ministries. Absolute design freedom with built-in ministry features like sermons, live alerts, and online giving.</p>
+        <button class="launch-btn" style="margin-top: 30px;" onclick="launchBuilder()">OPEN PROJECT DASHBOARD</button>
+
+        <div class="info-grid">
+            <div class="info-card"><i class="fa fa-video"></i><h4>Live Ready</h4><p>Instantly alert visitors when your YouTube or Facebook live stream begins.</p></div>
+            <div class="info-card"><i class="fa fa-layer-group"></i><h4>Absolute Drag</h4><p>Move every text, button, and image anywhere with pixel-perfect precision.</p></div>
+            <div class="info-card"><i class="fa fa-cloud-upload-alt"></i><h4>GitHub Sync</h4><p>Host your church site for free on GitHub Pages with one click.</p></div>
+        </div>
     </div>
 
     <div id="builder-container">
         <div id="top-bar">
-            <b style="color:var(--gold); font-size: 14px; letter-spacing: 2px;">APOSTLE</b>
+            <b style="color:var(--gold); font-size: 13px; letter-spacing: 2px;">APOSTLE</b>
             
-            <div id="tab-list"></div>
-            <button onclick="addPage()" style="background:none; border:1px dashed #444; color:#555; cursor:pointer; padding:5px 12px; border-radius:4px;">+ NEW PAGE</button>
+            <div id="tab-list" class="tool-group"></div>
+            <button onclick="addPage()" class="tool-btn" style="color:var(--gold)">+ PAGE</button>
 
-            <div class="device-toggle">
-                <button class="device-btn active" id="btn-desktop" onclick="setDevice('Desktop')"><i class="fa fa-desktop"></i></button>
-                <button class="device-btn" id="btn-mobile" onclick="setDevice('Mobile')"><i class="fa fa-mobile-phone"></i></button>
+            <div class="tool-group">
+                <button class="tool-btn active" id="btn-desktop" onclick="setDevice('Desktop')"><i class="fa fa-desktop"></i></button>
+                <button class="tool-btn" id="btn-mobile" onclick="setDevice('Mobile')"><i class="fa fa-mobile-phone"></i></button>
             </div>
 
-            <div id="deploy-wrap">
-                <input type="text" id="repo-id" class="repo-in" placeholder="Church Website Name (No spaces)">
-                <button onclick="pushToGitHub()" style="background:var(--gold); color:#000; border:none; padding:10px 20px; border-radius:4px; font-weight:800; cursor:pointer; font-size:11px;">PUBLISH TO WEB</button>
-                <button onclick="importProject()" style="background:#222; color:#fff; border:1px solid #333; padding:10px 15px; border-radius:4px; cursor:pointer; font-size:11px;">RESTORE SAVE</button>
+            <div id="deploy-controls">
+                <input type="text" id="repo-id" class="repo-in" placeholder="Church Site Name...">
+                <button onclick="pushToGitHub()" style="background:var(--gold); color:#000; border:none; padding:10px 20px; border-radius:6px; font-weight:800; cursor:pointer; font-size:12px;">PUBLISH</button>
+                <button onclick="importProject()" style="background:#222; color:#fff; border:none; padding:10px 15px; border-radius:6px; cursor:pointer; font-size:12px;">LOAD</button>
             </div>
         </div>
         <div id="gjs"></div>
@@ -95,39 +106,42 @@
             storageManager: false,
             pageManager: true,
             dragMode: 'absolute',
-            deviceManager: {
-                devices: [
-                    { name: 'Desktop', width: '' },
-                    { name: 'Mobile', width: '320px', widthMedia: '480px' }
-                ]
-            },
-            canvas: { styles: ['https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;700&display=swap'] },
+            deviceManager: { devices: [{ name: 'Desktop', width: '' }, { name: 'Mobile', width: '320px', widthMedia: '480px' }] },
+            canvas: { styles: ['https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@300;400;700&display=swap'] },
             blockManager: {
                 blocks: [
-                    { id: 'hero', label: 'Church Hero', category: 'Ministry', content: `
-                        <div style="position:absolute; top:0; left:0; width:100%; height:500px; background:linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1515162305285-0293e4767cc2?q=80&w=1200'); background-size:cover; background-position:center; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-                            <h1 style="color:#fff; font-family:Cinzel, serif; font-size:60px; margin:0;">Welcome Home</h1>
-                            <p style="color:var(--gold); letter-spacing:2px; font-weight:bold;">SUNDAYS AT 9:00AM & 11:00AM</p>
+                    { id: 'live-alert', label: 'Live Stream Alert', category: 'Ministry Tools', content: `
+                        <div style="position:absolute; top:20px; left:5%; width:90%; background:#d4af37; color:#000; padding:15px; border-radius:8px; display:flex; align-items:center; justify-content:center; gap:20px; font-family:Inter, sans-serif; font-weight:800;">
+                            <span style="width:12px; height:12px; background:red; border-radius:50%; animation:pulse 1s infinite;"></span>
+                            JOIN US LIVE FOR SERVICE!
+                            <a href="#" style="background:#000; color:#fff; padding:8px 20px; text-decoration:none; border-radius:4px; font-size:12px;">WATCH NOW</a>
+                            <style>@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }</style>
                         </div>` 
                     },
-                    { id: 'sermon', label: 'Latest Sermon', category: 'Ministry', content: `
-                        <div style="position:absolute; top:550px; left:10%; width:80%; height:300px; background:#111; border:1px solid #333; display:flex; align-items:center; padding:20px; border-radius:8px;">
-                            <div style="width:40%; height:100%; background:#222; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:40px; color:#444;"><i class="fa fa-play"></i></div>
-                            <div style="padding-left:40px;">
-                                <h2 style="color:var(--gold); font-family:Cinzel;">The Prodigal Returns</h2>
-                                <p style="color:#888;">Pastor John Smith • October 24, 2025</p>
-                                <a href="#" style="color:#fff; text-decoration:none; font-weight:bold; border-bottom:2px solid var(--gold); padding-bottom:5px;">WATCH SERMON</a>
+                    { id: 'cathedral-hero', label: 'Cinematic Hero', category: 'Ministry Tools', content: `
+                        <header style="position:absolute; top:0; left:0; width:100%; height:100vh; background:#000; overflow:hidden; display:flex; align-items:center; justify-content:center;">
+                            <div style="position:absolute; inset:0; background:url('https://images.unsplash.com/photo-1544427928-c49cdfebf494?auto=format&fit=crop&q=80&w=1200'); background-size:cover; background-position:center; opacity:0.6;"></div>
+                            <div style="position:relative; text-align:center; padding:20px;">
+                                <h1 style="font-family:Cinzel, serif; font-size:80px; margin:0; color:#fff;">Grace Church</h1>
+                                <p style="font-family:Inter; color:var(--gold); letter-spacing:5px; margin-top:10px;">LOVING GOD. LOVING PEOPLE.</p>
+                                <div style="margin-top:40px; display:flex; gap:20px; justify-content:center;">
+                                    <a href="#visit" style="padding:15px 40px; background:var(--gold); color:#000; font-weight:bold; text-decoration:none; border-radius:4px;">NEW HERE?</a>
+                                    <a href="#giving" style="padding:15px 40px; border:2px solid #fff; color:#fff; font-weight:bold; text-decoration:none; border-radius:4px;">GIVE ONLINE</a>
+                                </div>
+                            </div>
+                        </header>`
+                    },
+                    { id: 'sermon-grid', label: 'Sermon Card', category: 'Ministry Tools', content: `
+                        <div style="position:absolute; top:100px; left:100px; width:350px; background:#111; border:1px solid #222; border-radius:12px; overflow:hidden; font-family:Inter;">
+                            <div style="height:200px; background:url('https://images.unsplash.com/photo-1515162305285-0293e4767cc2?q=60&w=500'); background-size:cover;"></div>
+                            <div style="padding:25px;">
+                                <label style="font-size:10px; color:var(--gold); font-weight:900; letter-spacing:1px;">LATEST MESSAGE</label>
+                                <h3 style="color:#fff; margin:10px 0;">The Power of Faith</h3>
+                                <p style="color:#666; font-size:13px;">Join Pastor Thomas as he dives into Hebrews 11.</p>
+                                <button style="margin-top:15px; background:none; border:none; color:#fff; font-weight:bold; padding:0; border-bottom:2px solid var(--gold); cursor:pointer;">WATCH NOW</button>
                             </div>
                         </div>`
-                    },
-                    { id: 'give', label: 'Giving Card', category: 'Basic', content: { 
-                        tagName: 'div', style: { position: 'absolute', top: '900px', left: '100px', width: '300px', padding: '40px', background: '#fff', color: '#000', 'text-align': 'center', 'border-radius': '4px' },
-                        components: [
-                            { tagName: 'h3', content: 'Support Our Ministry', style: { 'font-family': 'Cinzel', 'margin-top': '0' } },
-                            { tagName: 'a', content: 'GIVE ONLINE', style: { display: 'inline-block', 'margin-top': '20px', padding: '12px 24px', background: '#000', color: '#fff', 'text-decoration': 'none', 'font-weight': 'bold' } }
-                        ]
-                    }},
-                    { id: 'txt', label: 'Scripture Text', category: 'Basic', content: { type: 'text', content: 'Enter Verse Here...', style: { position: 'absolute', top: '50px', left: '50px', color: '#fff', 'font-size': '20px', 'font-family': 'Cinzel' } } }
+                    }
                 ]
             }
         });
@@ -142,18 +156,18 @@
 
         window.setDevice = (device) => {
             editor.setDevice(device);
-            document.querySelectorAll('.device-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`btn-${device.toLowerCase()}`).classList.add('active');
         };
 
         window.notify = (msg, stay = false) => {
             const t = document.getElementById('toast');
             t.innerHTML = msg; t.style.display = 'block';
-            if(!stay) setTimeout(() => t.style.display = 'none', 5000);
+            if(!stay) setTimeout(() => t.style.display = 'none', 4000);
         };
 
         window.addPage = () => {
-            const name = prompt("Page Name (e.g. Sermons, Giving):");
+            const name = prompt("Page Name (Sermons, Giving, Events):");
             if(name) { pm.add({ id: name, component: '<div style="height:100vh; background:#000; position:relative;"></div>' }); updateTabs(); }
         };
 
@@ -162,25 +176,25 @@
             list.innerHTML = '';
             pm.getAll().forEach(p => {
                 const btn = document.createElement('button');
-                btn.className = `tab-btn ${p.id === pm.getSelected().id ? 'active' : ''}`;
+                btn.className = `tool-btn ${p.id === pm.getSelected().id ? 'active' : ''}`;
                 btn.innerText = p.id.toUpperCase();
                 btn.onclick = () => { pm.select(p.id); updateTabs(); };
                 list.appendChild(btn);
             });
         };
 
-        // Ensure components stay absolute on drop
+        // Fix: Force absolute positioning for all new drops
         editor.on('component:add', (model) => {
             const style = model.getStyle();
-            if (!style.position) model.setStyle({ ...style, position: 'absolute' });
+            if (!style.position) model.setStyle({ ...style, position: 'absolute', top: '100px', left: '100px' });
         });
 
         let token = "", user = "";
 
         window.pushToGitHub = async () => {
             const repo = document.getElementById('repo-id').value;
-            if(!repo) return notify("⚠️ Enter Church Website Name!");
-            notify("🛰️ Synchronizing with GitHub...", true);
+            if(!repo) return notify("⚠️ Give your ministry site a name!");
+            notify("🛰️ Connection Established. Preparing Files...", true);
 
             if(!token) {
                 const provider = new firebase.auth.GithubAuthProvider();
@@ -193,7 +207,11 @@
             const octo = new Octokit({ auth: token });
             try {
                 try { await octo.request('POST /user/repos', { name: repo, auto_init: true }); } catch(e){}
+                
+                // SAVE FULL PROJECT DATA
                 await sync(octo, repo, 'project-data.json', JSON.stringify(editor.getProjectData()));
+
+                // CONVERT PAGES TO HTML
                 const pages = pm.getAll();
                 for (const p of pages) {
                     pm.select(p.id);
@@ -201,21 +219,31 @@
                     const filename = (p.id === 'index' || pages.indexOf(p) === 0) ? 'index.html' : `${p.id}.html`;
                     await sync(octo, repo, filename, html);
                 }
-                notify(`✅ CHURCH SITE PUBLISHED!<br><br><a href="https://github.com/${user}/${repo}" target="_blank">Open GitHub Repository</a><br><small>Final Step: Go to Settings > Pages to launch.</small>`, true);
-            } catch(e) { notify("❌ Error: " + e.message); }
+                notify(`✅ GLORY! PUBLISHED.<br><br><a href="https://github.com/${user}/${repo}" target="_blank">View Your Repository</a>`, true);
+            } catch(e) { notify("❌ Push Failed: " + e.message); }
         };
 
         window.importProject = async () => {
             const repo = document.getElementById('repo-id').value;
-            if(!repo) return notify("⚠️ Enter Repo Name to Restore.");
-            notify("📥 Restoring Data...", true);
+            if(!repo) return notify("⚠️ Enter Repo Name to Load.");
+            notify("📥 Restoring Ministry Project...", true);
+            
+            if(!token) {
+                const provider = new firebase.auth.GithubAuthProvider();
+                provider.addScope('repo');
+                const res = await firebase.auth().signInWithPopup(provider);
+                token = res.credential.accessToken;
+                user = res.additionalUserInfo.username;
+            }
+
             const octo = new Octokit({ auth: token });
             try {
                 const res = await octo.repos.getContent({ owner: user, repo: repo, path: 'project-data.json' });
-                editor.loadProjectData(JSON.parse(atob(res.data.content)));
-                notify("✅ Restore Successful!");
+                const content = JSON.parse(atob(res.data.content));
+                editor.loadProjectData(content);
+                notify("✅ Data Restored Successfully!");
                 updateTabs();
-            } catch(e) { notify("⚠️ No save data found."); }
+            } catch(e) { notify("⚠️ No save-file found in this repository."); }
         };
 
         async function sync(octo, repo, path, content) {
@@ -229,6 +257,7 @@
 
         editor.on('load', () => {
             if(!pm.getSelected()) pm.add({ id: 'index', component: '<div style="height:100vh; background:#000; position:relative;"></div>' });
+            updateTabs();
         });
     </script>
 </body>
