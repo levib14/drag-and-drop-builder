@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Apostle | Ministry Web Suite</title>
+    <title>Apostle Pro | Professional Ministry Design</title>
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/grapesjs"></script>
@@ -10,83 +10,97 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
     <style>
-        :root { --gold: #d4af37; --bg: #050505; --panel: #111; --border: #222; --text-dim: #777; }
+        :root { --gold: #d4af37; --bg: #080808; --panel: #111; --border: #262626; --accent: #3b82f6; }
         body, html { height: 100%; margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: #fff; overflow: hidden; }
 
-        /* LANDING PAGE & DASHBOARD */
+        /* LANDING PAGE PEAK UI */
         #landing-page {
-            position: absolute; inset: 0; z-index: 2000; background: var(--bg);
-            display: flex; flex-direction: column; align-items: center; overflow-y: auto; padding-bottom: 80px;
+            position: absolute; inset: 0; z-index: 2000; background: radial-gradient(circle at 50% -20%, #1a1a1a 0%, #000 100%);
+            display: flex; flex-direction: column; align-items: center; overflow-y: auto; padding-bottom: 100px;
         }
-        .nav-header { width: 100%; max-width: 1100px; display: flex; justify-content: space-between; padding: 30px; align-items: center; }
-        .hero-title { font-size: clamp(40px, 10vw, 85px); font-weight: 800; letter-spacing: -4px; margin: 60px 0 20px 0; text-align: center; background: linear-gradient(to bottom, #fff, #444); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .glass-nav { width: 100%; max-width: 1000px; display: flex; justify-content: space-between; padding: 20px; margin-top: 20px; background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; align-items: center; }
+        .hero-v3 { font-size: clamp(50px, 12vw, 110px); font-weight: 900; letter-spacing: -6px; margin: 80px 0 20px 0; line-height: 0.85; text-align: center; background: linear-gradient(to bottom, #fff 30%, #666 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         
-        .launch-btn { background: #fff; color: #000; padding: 16px 40px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; transition: 0.3s; }
-        .launch-btn:hover { background: var(--gold); transform: scale(1.03); }
+        .launch-btn-pro { background: #fff; color: #000; padding: 20px 50px; border-radius: 12px; font-weight: 800; border: none; cursor: pointer; font-size: 16px; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .launch-btn-pro:hover { background: var(--gold); transform: scale(1.05) translateY(-5px); box-shadow: 0 20px 40px rgba(212, 175, 55, 0.3); }
 
-        .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1000px; margin-top: 50px; }
-        .info-card { background: #0f0f0f; border: 1px solid #1a1a1a; padding: 25px; border-radius: 12px; transition: 0.2s; }
-        .info-card:hover { border-color: var(--gold); }
-        .info-card i { color: var(--gold); font-size: 20px; margin-bottom: 10px; }
-        .info-card h4 { margin: 10px 0; font-size: 16px; }
-        .info-card p { color: #555; font-size: 13px; line-height: 1.6; }
-
-        /* BUILDER INTERFACE */
+        /* PROFESSIONAL EDITOR SKIN */
         #builder-container { display: none; height: 100%; flex-direction: column; }
-        #top-bar { height: 65px; background: #000; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 20px; }
+        #top-bar { 
+            height: 70px; background: #000; border-bottom: 1px solid var(--border); 
+            display: flex; align-items: center; padding: 0 25px; gap: 20px; z-index: 10;
+        }
         
-        /* Tool Groups */
-        .tool-group { display: flex; background: #111; border: 1px solid #222; border-radius: 6px; padding: 3px; }
-        .tool-btn { padding: 8px 14px; border: none; background: none; color: #666; cursor: pointer; border-radius: 4px; font-size: 11px; font-weight: bold; }
-        .tool-btn.active { background: #222; color: var(--gold); }
-        
-        /* GJS UI High Contrast Overrides */
+        /* Reskinning GrapesJS to look like Wix/Framer */
+        .gjs-cv-canvas { background-color: #0f0f0f !important; }
+        .gjs-pn-views-container { background: #000 !important; border-left: 1px solid var(--border) !important; width: 300px !important; }
+        .gjs-pn-views { background: #000 !important; border-bottom: 1px solid var(--border) !important; }
+        .gjs-block { background: #111 !important; color: #eee !important; border: 1px solid #222 !important; border-radius: 8px !important; padding: 15px !important; transition: 0.2s; }
+        .gjs-block:hover { border-color: var(--gold) !important; transform: translateY(-2px); }
         .gjs-one-bg { background-color: #000 !important; }
-        .gjs-two-bg { background-color: #0d0d0d !important; }
-        .gjs-field { background-color: #1a1a1a !important; border: 1px solid #333 !important; color: #fff !important; }
+        .gjs-two-bg { background-color: #0c0c0c !important; }
 
-        #deploy-controls { margin-left: auto; display: flex; gap: 10px; align-items: center; }
-        .repo-in { background: #000; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 6px; width: 220px; font-size: 12px; }
-        .repo-in:focus { border-color: var(--gold); outline: none; }
+        /* Tab & Tool UI */
+        .pro-group { display: flex; background: #111; border: 1px solid #222; border-radius: 10px; padding: 4px; gap: 4px; }
+        .pro-btn { padding: 8px 16px; border: none; background: none; color: #777; cursor: pointer; border-radius: 7px; font-size: 11px; font-weight: 700; transition: 0.2s; }
+        .pro-btn.active { background: #222; color: var(--gold); }
 
-        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #fff; color: #000; padding: 15px 30px; border-radius: 8px; font-weight: 800; z-index: 10000; display: none; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
+        #deploy-pro { margin-left: auto; display: flex; gap: 12px; }
+        .pro-input { background: #111; border: 1px solid #333; color: #fff; padding: 12px 18px; border-radius: 10px; width: 240px; font-size: 13px; outline: none; }
+        .pro-input:focus { border-color: var(--gold); background: #000; }
+
+        /* REALISTIC DEVICE PREVIEW */
+        .gjs-frame-wrapper { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .device-mobile .gjs-frame-wrapper { 
+            width: 375px !important; height: 812px !important; 
+            margin: 40px auto !important; border: 12px solid #222 !important; 
+            border-radius: 40px !important; box-shadow: 0 50px 100px rgba(0,0,0,0.8) !important;
+        }
+
+        #toast { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: #fff; color: #000; padding: 18px 36px; border-radius: 14px; font-weight: 800; z-index: 10000; display: none; box-shadow: 0 30px 60px rgba(0,0,0,0.6); }
     </style>
 </head>
 <body>
 
     <div id="landing-page">
-        <div class="nav-header">
-            <b style="color:var(--gold); letter-spacing: 3px; font-size: 14px;">APOSTLE V3</b>
-            <button onclick="launchBuilder()" class="launch-btn" style="padding: 10px 20px;">LAUNCH EDITOR</button>
+        <div class="glass-nav">
+            <b style="color:var(--gold); letter-spacing: 4px; font-size: 14px;">APOSTLE PRO</b>
+            <div style="display:flex; gap:20px; font-size:12px; font-weight:bold; color:#666;">
+                <span>TEMPLATES</span><span>FEATURES</span><span>PRICING</span>
+            </div>
+            <button onclick="launchBuilder()" class="launch-btn-pro" style="padding: 10px 25px; font-size: 12px;">DASHBOARD</button>
         </div>
 
-        <h1 class="hero-title">The Digital Pulpit.</h1>
-        <p style="color:var(--text-dim); text-align:center; max-width: 600px; font-size: 18px;">Built specifically for ministries. Absolute design freedom with built-in ministry features like sermons, live alerts, and online giving.</p>
-        <button class="launch-btn" style="margin-top: 30px;" onclick="launchBuilder()">OPEN PROJECT DASHBOARD</button>
-
-        <div class="info-grid">
-            <div class="info-card"><i class="fa fa-video"></i><h4>Live Ready</h4><p>Instantly alert visitors when your YouTube or Facebook live stream begins.</p></div>
-            <div class="info-card"><i class="fa fa-layer-group"></i><h4>Absolute Drag</h4><p>Move every text, button, and image anywhere with pixel-perfect precision.</p></div>
-            <div class="info-card"><i class="fa fa-cloud-upload-alt"></i><h4>GitHub Sync</h4><p>Host your church site for free on GitHub Pages with one click.</p></div>
+        <h1 class="hero-v3">Your Church.<br>In 4K Detail.</h1>
+        <p style="color:#666; text-align:center; max-width: 650px; font-size: 20px; line-height: 1.6;">The ultimate high-performance website engine for modern ministries. Experience pixel-perfect absolute freedom.</p>
+        
+        <div style="margin-top: 50px; display: flex; gap: 20px;">
+            <button class="launch-btn-pro" onclick="launchBuilder()">BUILD YOUR SANCTUARY</button>
+            <button style="background:none; border: 1px solid #333; color:#fff; padding:20px 40px; border-radius:12px; font-weight:bold; cursor:pointer;" onclick="launchBuilder()">RELOAD SITE</button>
         </div>
+
+        <div style="margin-top: 100px; width: 80%; height: 400px; background: url('https://images.unsplash.com/photo-1515162305285-0293e4767cc2?auto=format&fit=crop&q=80&w=1400'); background-size: cover; border-radius: 30px; border: 1px solid #222; box-shadow: 0 -50px 100px rgba(0,0,0,0.5);"></div>
     </div>
 
     <div id="builder-container">
         <div id="top-bar">
-            <b style="color:var(--gold); font-size: 13px; letter-spacing: 2px;">APOSTLE</b>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:30px; height:30px; background:var(--gold); border-radius:6px;"></div>
+                <b style="color:#fff; font-size: 14px; letter-spacing: 1px;">APOSTLE <span style="color:var(--gold)">PRO</span></b>
+            </div>
             
-            <div id="tab-list" class="tool-group"></div>
-            <button onclick="addPage()" class="tool-btn" style="color:var(--gold)">+ PAGE</button>
+            <div id="tab-list" class="pro-group"></div>
+            <button onclick="addPage()" class="pro-btn" style="background:#1a1a1a; color:#fff; border:1px solid #333;">+ PAGE</button>
 
-            <div class="tool-group">
-                <button class="tool-btn active" id="btn-desktop" onclick="setDevice('Desktop')"><i class="fa fa-desktop"></i></button>
-                <button class="tool-btn" id="btn-mobile" onclick="setDevice('Mobile')"><i class="fa fa-mobile-phone"></i></button>
+            <div class="pro-group">
+                <button class="pro-btn active" id="btn-desktop" onclick="setDevice('Desktop')"><i class="fa fa-desktop"></i></button>
+                <button class="pro-btn" id="btn-mobile" onclick="setDevice('Mobile')"><i class="fa fa-mobile-phone"></i></button>
             </div>
 
-            <div id="deploy-controls">
-                <input type="text" id="repo-id" class="repo-in" placeholder="Church Site Name...">
-                <button onclick="pushToGitHub()" style="background:var(--gold); color:#000; border:none; padding:10px 20px; border-radius:6px; font-weight:800; cursor:pointer; font-size:12px;">PUBLISH</button>
-                <button onclick="importProject()" style="background:#222; color:#fff; border:none; padding:10px 15px; border-radius:6px; cursor:pointer; font-size:12px;">LOAD</button>
+            <div id="deploy-pro">
+                <input type="text" id="repo-id" class="pro-input" placeholder="Ministry Project Name...">
+                <button onclick="pushToGitHub()" style="background:var(--gold); color:#000; border:none; padding:12px 28px; border-radius:10px; font-weight:900; cursor:pointer; font-size:12px;">PUBLISH LIVE</button>
+                <button onclick="importProject()" style="background:#111; color:#777; border:1px solid #222; padding:12px 20px; border-radius:10px; cursor:pointer; font-size:12px;">LOAD</button>
             </div>
         </div>
         <div id="gjs"></div>
@@ -103,42 +117,43 @@
         const editor = grapesjs.init({
             container: '#gjs',
             height: '100%',
+            fromElement: true,
             storageManager: false,
             pageManager: true,
             dragMode: 'absolute',
-            deviceManager: { devices: [{ name: 'Desktop', width: '' }, { name: 'Mobile', width: '320px', widthMedia: '480px' }] },
-            canvas: { styles: ['https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@300;400;700&display=swap'] },
+            deviceManager: {
+                devices: [
+                    { name: 'Desktop', width: '' },
+                    { name: 'Mobile', width: '375px', widthMedia: '480px' }
+                ]
+            },
+            canvas: { styles: ['https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@300;400;900&display=swap'] },
             blockManager: {
                 blocks: [
-                    { id: 'live-alert', label: 'Live Stream Alert', category: 'Ministry Tools', content: `
-                        <div style="position:absolute; top:20px; left:5%; width:90%; background:#d4af37; color:#000; padding:15px; border-radius:8px; display:flex; align-items:center; justify-content:center; gap:20px; font-family:Inter, sans-serif; font-weight:800;">
-                            <span style="width:12px; height:12px; background:red; border-radius:50%; animation:pulse 1s infinite;"></span>
-                            JOIN US LIVE FOR SERVICE!
-                            <a href="#" style="background:#000; color:#fff; padding:8px 20px; text-decoration:none; border-radius:4px; font-size:12px;">WATCH NOW</a>
-                            <style>@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }</style>
-                        </div>` 
-                    },
-                    { id: 'cathedral-hero', label: 'Cinematic Hero', category: 'Ministry Tools', content: `
-                        <header style="position:absolute; top:0; left:0; width:100%; height:100vh; background:#000; overflow:hidden; display:flex; align-items:center; justify-content:center;">
-                            <div style="position:absolute; inset:0; background:url('https://images.unsplash.com/photo-1544427928-c49cdfebf494?auto=format&fit=crop&q=80&w=1200'); background-size:cover; background-position:center; opacity:0.6;"></div>
-                            <div style="position:relative; text-align:center; padding:20px;">
-                                <h1 style="font-family:Cinzel, serif; font-size:80px; margin:0; color:#fff;">Grace Church</h1>
-                                <p style="font-family:Inter; color:var(--gold); letter-spacing:5px; margin-top:10px;">LOVING GOD. LOVING PEOPLE.</p>
-                                <div style="margin-top:40px; display:flex; gap:20px; justify-content:center;">
-                                    <a href="#visit" style="padding:15px 40px; background:var(--gold); color:#000; font-weight:bold; text-decoration:none; border-radius:4px;">NEW HERE?</a>
-                                    <a href="#giving" style="padding:15px 40px; border:2px solid #fff; color:#fff; font-weight:bold; text-decoration:none; border-radius:4px;">GIVE ONLINE</a>
-                                </div>
+                    { id: 'hero-full', label: 'Pro Hero Section', category: 'Ministry', content: `
+                        <header style="position:absolute; top:0; left:0; width:100%; height:100vh; background:#000; display:flex; align-items:center; justify-content:center;">
+                            <div style="position:absolute; inset:0; background:url('https://images.unsplash.com/photo-1438232992991-995b7058bbb3?q=80&w=1500'); background-size:cover; opacity:0.4;"></div>
+                            <div style="position:relative; text-align:center;">
+                                <h1 style="font-family:Cinzel; font-size:90px; margin:0; line-height:1; color:#fff;">Eternal Hope</h1>
+                                <p style="font-family:Inter; color:var(--gold); letter-spacing:8px; font-weight:900; margin-top:15px;">A PLACE TO BELONG</p>
+                                <a href="#join" style="display:inline-block; margin-top:40px; padding:20px 50px; background:#fff; color:#000; text-decoration:none; font-weight:900; border-radius:50px;">JOIN US SUNDAY</a>
                             </div>
                         </header>`
                     },
-                    { id: 'sermon-grid', label: 'Sermon Card', category: 'Ministry Tools', content: `
-                        <div style="position:absolute; top:100px; left:100px; width:350px; background:#111; border:1px solid #222; border-radius:12px; overflow:hidden; font-family:Inter;">
-                            <div style="height:200px; background:url('https://images.unsplash.com/photo-1515162305285-0293e4767cc2?q=60&w=500'); background-size:cover;"></div>
+                    { id: 'live-now', label: 'Live Status Bar', category: 'Ministry', content: `
+                        <div style="position:absolute; top:30px; left:50%; transform:translateX(-50%); width:auto; white-space:nowrap; background:rgba(0,0,0,0.8); border:1px solid var(--gold); backdrop-filter:blur(10px); color:#fff; padding:12px 30px; border-radius:50px; display:flex; align-items:center; gap:15px; font-family:Inter; font-size:12px; font-weight:bold;">
+                            <span style="width:10px; height:10px; background:red; border-radius:50%; animation:pulse 1.2s infinite;"></span>
+                            WE ARE STREAMING LIVE
+                            <a href="#" style="color:var(--gold); text-decoration:none;">WATCH STREAM →</a>
+                        </div>`
+                    },
+                    { id: 'sermon-card-pro', label: 'Sermon Card V2', category: 'Ministry', content: `
+                        <div style="position:absolute; top:100px; left:100px; width:320px; background:#111; border-radius:24px; border:1px solid #222; overflow:hidden; font-family:Inter;">
+                            <div style="height:220px; background:url('https://images.unsplash.com/photo-1507692049790-de58290a4334?q=80&w=500'); background-size:cover;"></div>
                             <div style="padding:25px;">
-                                <label style="font-size:10px; color:var(--gold); font-weight:900; letter-spacing:1px;">LATEST MESSAGE</label>
-                                <h3 style="color:#fff; margin:10px 0;">The Power of Faith</h3>
-                                <p style="color:#666; font-size:13px;">Join Pastor Thomas as he dives into Hebrews 11.</p>
-                                <button style="margin-top:15px; background:none; border:none; color:#fff; font-weight:bold; padding:0; border-bottom:2px solid var(--gold); cursor:pointer;">WATCH NOW</button>
+                                <h3 style="margin:0; color:#fff;">Overcoming Fear</h3>
+                                <p style="color:#555; font-size:13px; margin:10px 0;">Pastor Sarah Williams</p>
+                                <button style="width:100%; padding:12px; background:#222; color:#fff; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">PLAY MESSAGE</button>
                             </div>
                         </div>`
                     }
@@ -156,18 +171,22 @@
 
         window.setDevice = (device) => {
             editor.setDevice(device);
-            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            const canvas = document.querySelector('.gjs-cv-canvas');
+            if(device === 'Mobile') canvas.classList.add('device-mobile');
+            else canvas.classList.remove('device-mobile');
+            
+            document.querySelectorAll('.pro-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`btn-${device.toLowerCase()}`).classList.add('active');
         };
 
         window.notify = (msg, stay = false) => {
             const t = document.getElementById('toast');
             t.innerHTML = msg; t.style.display = 'block';
-            if(!stay) setTimeout(() => t.style.display = 'none', 4000);
+            if(!stay) setTimeout(() => t.style.display = 'none', 5000);
         };
 
         window.addPage = () => {
-            const name = prompt("Page Name (Sermons, Giving, Events):");
+            const name = prompt("Page Name (Sermons, About, Give):");
             if(name) { pm.add({ id: name, component: '<div style="height:100vh; background:#000; position:relative;"></div>' }); updateTabs(); }
         };
 
@@ -176,14 +195,13 @@
             list.innerHTML = '';
             pm.getAll().forEach(p => {
                 const btn = document.createElement('button');
-                btn.className = `tool-btn ${p.id === pm.getSelected().id ? 'active' : ''}`;
+                btn.className = `pro-btn ${p.id === pm.getSelected().id ? 'active' : ''}`;
                 btn.innerText = p.id.toUpperCase();
                 btn.onclick = () => { pm.select(p.id); updateTabs(); };
                 list.appendChild(btn);
             });
         };
 
-        // Fix: Force absolute positioning for all new drops
         editor.on('component:add', (model) => {
             const style = model.getStyle();
             if (!style.position) model.setStyle({ ...style, position: 'absolute', top: '100px', left: '100px' });
@@ -193,8 +211,8 @@
 
         window.pushToGitHub = async () => {
             const repo = document.getElementById('repo-id').value;
-            if(!repo) return notify("⚠️ Give your ministry site a name!");
-            notify("🛰️ Connection Established. Preparing Files...", true);
+            if(!repo) return notify("⚠️ Enter a project name!");
+            notify("🛰️ Connection Established...", true);
 
             if(!token) {
                 const provider = new firebase.auth.GithubAuthProvider();
@@ -208,26 +226,26 @@
             try {
                 try { await octo.request('POST /user/repos', { name: repo, auto_init: true }); } catch(e){}
                 
-                // SAVE FULL PROJECT DATA
+                // SAVE RAW DATA FOR RE-IMPORT
                 await sync(octo, repo, 'project-data.json', JSON.stringify(editor.getProjectData()));
 
-                // CONVERT PAGES TO HTML
                 const pages = pm.getAll();
                 for (const p of pages) {
                     pm.select(p.id);
-                    const html = `<!DOCTYPE html><html><head><title>${p.id}</title><meta charset="utf-8"><style>${editor.getCss()}</style></head><body style="margin:0; position:relative; min-height:100vh; background:#000; color:#fff; overflow-x:hidden;">${editor.getHtml()}</body></html>`;
+                    // Pro Export Body Wrapper
+                    const html = `<!DOCTYPE html><html><head><title>${p.id}</title><meta charset="utf-8"><style>${editor.getCss()} body{background:#000; color:#fff; margin:0; overflow-x:hidden; position:relative; min-height:100vh;}</style></head><body>${editor.getHtml()}</body></html>`;
                     const filename = (p.id === 'index' || pages.indexOf(p) === 0) ? 'index.html' : `${p.id}.html`;
                     await sync(octo, repo, filename, html);
                 }
-                notify(`✅ GLORY! PUBLISHED.<br><br><a href="https://github.com/${user}/${repo}" target="_blank">View Your Repository</a>`, true);
-            } catch(e) { notify("❌ Push Failed: " + e.message); }
+                notify(`✅ SITE LIVE!<br><br><a href="https://github.com/${user}/${repo}" target="_blank">Open Project Repository</a>`, true);
+            } catch(e) { notify("❌ Error: " + e.message); }
         };
 
         window.importProject = async () => {
             const repo = document.getElementById('repo-id').value;
             if(!repo) return notify("⚠️ Enter Repo Name to Load.");
-            notify("📥 Restoring Ministry Project...", true);
-            
+            notify("📥 Fetching Pro Save...", true);
+
             if(!token) {
                 const provider = new firebase.auth.GithubAuthProvider();
                 provider.addScope('repo');
@@ -241,16 +259,16 @@
                 const res = await octo.repos.getContent({ owner: user, repo: repo, path: 'project-data.json' });
                 const content = JSON.parse(atob(res.data.content));
                 editor.loadProjectData(content);
-                notify("✅ Data Restored Successfully!");
+                notify("✅ Restore Successful!");
                 updateTabs();
-            } catch(e) { notify("⚠️ No save-file found in this repository."); }
+            } catch(e) { notify("⚠️ No save-file found."); }
         };
 
         async function sync(octo, repo, path, content) {
             let sha = null;
             try { const res = await octo.repos.getContent({ owner: user, repo: repo, path: path }); sha = res.data.sha; } catch(e) {}
             return octo.repos.createOrUpdateFileContents({
-                owner: user, repo: repo, path: path, message: 'Apostle Sync',
+                owner: user, repo: repo, path: path, message: 'Apostle Pro Sync',
                 content: btoa(unescape(encodeURIComponent(content))), sha: sha
             });
         }
